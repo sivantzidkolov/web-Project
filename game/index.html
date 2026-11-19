@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<title>יירוט לילה</title>
+<title>Night Intercept</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -39,7 +39,6 @@
     padding-left: max(16px, env(safe-area-inset-left, 0px));
     padding-right: max(16px, env(safe-area-inset-right, 0px));
     pointer-events: none;
-    direction: rtl;
   }
   .stat { display: flex; flex-direction: column; line-height: 1.1; }
   .stat .lbl { font-size: 11px; letter-spacing: 0.06em; color: var(--muted); }
@@ -61,13 +60,14 @@
     width: 64px; height: 64px; border-radius: 50%;
     background: radial-gradient(circle at 50% 35%, #3a3220, #1a1710);
     border: 2px solid var(--tracer); color: var(--tracer);
-    font: 800 17px var(--font-ui);
+    font: 800 14px var(--font-ui);
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
     cursor: pointer; touch-action: none;
   }
   #reloadBtn small { font-size: 10px; font-weight: 600; color: var(--muted); }
   #reloadBtn.urgent { animation: pulse 0.6s ease-in-out infinite alternate; }
   #reloadBtn.busy { opacity: 0.6; }
+  #reloadBtn.inf { opacity: 0.35; pointer-events: none; }
   @keyframes pulse { from { box-shadow: 0 0 0 0 rgba(255, 200, 87, 0.0); } to { box-shadow: 0 0 0 10px rgba(255, 200, 87, 0.35); } }
 
   .overlay {
@@ -76,7 +76,6 @@
     padding-right: max(16px, env(safe-area-inset-right, 0px));
     padding-block: 16px;
     background: rgba(6, 9, 22, 0.45);
-    direction: rtl;
   }
   .card {
     width: 100%; max-width: 440px; max-height: 100%; overflow-y: auto;
@@ -89,7 +88,7 @@
   .card h2 { margin: 0; font-size: 30px; font-weight: 800; }
   .card p { margin: 0; color: #c8cee6; line-height: 1.55; font-size: 15px; }
   .rules { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 14px; line-height: 1.45; }
-  .rules li { display: grid; grid-template-columns: 92px 1fr; gap: 10px; align-items: baseline; }
+  .rules li { display: grid; grid-template-columns: 128px 1fr; gap: 10px; align-items: baseline; }
   .rules b { color: var(--tracer); font-weight: 600; font-size: 13px; }
   .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); }
   .legend span { display: inline-flex; align-items: center; gap: 6px; }
@@ -107,7 +106,7 @@
 
   #banner {
     position: fixed; left: 0; right: 0; top: 28%; text-align: center; pointer-events: none;
-    opacity: 0; transform: translateY(8px); transition: opacity 0.3s, transform 0.3s; direction: rtl;
+    opacity: 0; transform: translateY(8px); transition: opacity 0.3s, transform 0.3s;
   }
   #banner.show { opacity: 1; transform: none; }
   #banner .t { font-size: 44px; font-weight: 800; letter-spacing: 0.02em; text-shadow: 0 2px 18px rgba(0, 0, 0, 0.6); }
@@ -125,62 +124,64 @@
   }
 </style>
 
-<canvas id="cv" aria-label="שדה המשחק"></canvas>
+<canvas id="cv" aria-label="Game field"></canvas>
 
 <div id="hud">
-  <div class="stat"><span class="lbl">ניקוד</span><span class="val" id="score">0</span></div>
-  <div class="stat"><span class="lbl">גל</span><span class="val" id="wave">–</span></div>
-  <div class="stat"><span class="lbl">שיא</span><span class="val" id="best">0</span></div>
+  <div class="stat"><span class="lbl">SCORE</span><span class="val" id="score">0</span></div>
+  <div class="stat"><span class="lbl">WAVE</span><span class="val" id="wave">–</span></div>
+  <div class="stat"><span class="lbl">BEST</span><span class="val" id="best">0</span></div>
   <div class="hud-btns">
-    <button class="chip" id="muteBtn" type="button">צליל: פועל</button>
-    <button class="chip" id="pauseBtn" type="button">השהה</button>
+    <button class="chip" id="muteBtn" type="button">Sound: on</button>
+    <button class="chip" id="pauseBtn" type="button">Pause</button>
   </div>
 </div>
 
-<button id="reloadBtn" type="button" aria-label="טעינת התותח"><span>טען</span><small>R</small></button>
+<button id="reloadBtn" type="button" aria-label="Reload the cannon"><span>LOAD</span><small>R</small></button>
 
 <div id="banner"><div class="t" id="bannerT"></div><div class="s" id="bannerS"></div></div>
 
 <div class="overlay" id="startOv">
   <div class="card">
-    <h1>יירוט <span>לילה</span></h1>
-    <p>טילים ורחפנים יורדים על העיר. התותח שלכם באמצע, והמחסנית מחזיקה רק 6 פגזים. יורים, טוענים, ומספיקים ליירט לפני הפגיעה.</p>
+    <h1>Night <span>Intercept</span></h1>
+    <p>Missiles and drones are falling on the city. Your cannon sits in the middle and the magazine holds only 6 shells. Fire, reload, and intercept before they hit.</p>
     <ul class="rules">
-      <li><b>לחיצה / נגיעה</b><span>יורה פגז שמתפוצץ בדיוק בנקודה שבחרתם. כוונו קצת לפני האיום.</span></li>
-      <li><b>R / רווח / קליק ימני</b><span>טעינה. פגז אחד נכנס כל 0.4 שניות, וכל ירייה עוצרת את הטעינה.</span></li>
-      <li><b>שרשרת</b><span>איום שמתפוצץ מפיל את מי שלידו. כמה יירוטים בפיצוץ אחד מכפילים את הניקוד.</span></li>
-      <li><b>ציפורים</b><span>לא איום. פגיעה בציפור עולה 50 נקודות.</span></li>
+      <li><b>Click / tap</b><span>Fires a shell that bursts exactly where you aimed. Lead your target a little.</span></li>
+      <li><b>R / Space / right-click</b><span>Reload. One shell goes in every 0.4 s, and firing stops the reload.</span></li>
+      <li><b>Chain</b><span>A destroyed threat blows up whatever is next to it. Several kills from one blast multiply the score.</span></li>
+      <li><b>∞ Bonus orb</b><span>A golden orb crosses the sky now and then. Hit it for 10 seconds of unlimited, rapid fire.</span></li>
+      <li><b>Birds</b><span>Not a threat. Hitting a bird costs 50 points.</span></li>
     </ul>
-    <div class="legend" aria-label="סוגי איומים">
-      <span><i style="background:#ffb347"></i>טיל</span>
-      <span><i style="background:#ff5a3c"></i>טיל מהיר (מגל 3)</span>
-      <span><i style="background:#ffe066"></i>טיל מתפצל (מגל 4)</span>
-      <span><i style="background:#9aa4c8"></i>רחפן (מגל 2)</span>
-      <span><i style="background:#e6ecff"></i>ציפור</span>
+    <div class="legend" aria-label="Threat types">
+      <span><i style="background:#ffb347"></i>Missile</span>
+      <span><i style="background:#ff5a3c"></i>Fast missile (wave 3+)</span>
+      <span><i style="background:#ffe066"></i>Splitter (wave 4+)</span>
+      <span><i style="background:#9aa4c8"></i>Drone (wave 2+)</span>
+      <span><i style="background:#e6ecff"></i>Bird</span>
+      <span><i style="background:#7ff0d0"></i>∞ Bonus</span>
     </div>
-    <button class="primary" id="startBtn" type="button">התחל לשחק</button>
-    <span class="hint">P או Esc להשהיה. העיר נופלת כשכל ששת הבניינים נפגעו.</span>
+    <button class="primary" id="startBtn" type="button">Start game</button>
+    <span class="hint">P or Esc to pause. The city falls when all six buildings are hit.</span>
   </div>
 </div>
 
 <div class="overlay" id="pauseOv" hidden>
   <div class="card">
-    <h2>מושהה</h2>
-    <button class="primary" id="resumeBtn" type="button">המשך</button>
+    <h2>Paused</h2>
+    <button class="primary" id="resumeBtn" type="button">Resume</button>
   </div>
 </div>
 
 <div class="overlay" id="overOv" hidden>
   <div class="card">
-    <h2 id="overTitle">העיר נפלה</h2>
+    <h2 id="overTitle">The city has fallen</h2>
     <div class="stats">
-      <div><span class="lbl">ניקוד</span><span class="val" id="oScore">0</span></div>
-      <div><span class="lbl">הגעתם לגל</span><span class="val" id="oWave">0</span></div>
-      <div><span class="lbl">יירוטים</span><span class="val" id="oKills">0</span></div>
-      <div><span class="lbl">דיוק</span><span class="val" id="oAcc">0%</span></div>
+      <div><span class="lbl">Score</span><span class="val" id="oScore">0</span></div>
+      <div><span class="lbl">Reached wave</span><span class="val" id="oWave">0</span></div>
+      <div><span class="lbl">Intercepts</span><span class="val" id="oKills">0</span></div>
+      <div><span class="lbl">Accuracy</span><span class="val" id="oAcc">0%</span></div>
     </div>
     <p id="oBest"></p>
-    <button class="primary" id="againBtn" type="button">שחקו שוב</button>
+    <button class="primary" id="againBtn" type="button">Play again</button>
   </div>
 </div>
 
@@ -198,6 +199,8 @@
   const SLOTS = [0.09, 0.21, 0.33, 0.67, 0.79, 0.91];
   const HEIGHTS = [0.9, 1.2, 0.75, 1.05, 0.8, 1.15];
   const PTS = { missile: 100, fast: 150, mirv: 200, child: 75, drone: 150 };
+  const POWER_TIME = 10;  // seconds of unlimited ammo
+  const isHostile = (e) => e.type !== 'bird' && e.type !== 'bonus';
   const FONT = '"Rubik", "Segoe UI", system-ui, sans-serif';
 
   let W = 0, H = 0, DPR = 1, u = 1, groundY = 0;
@@ -211,7 +214,7 @@
       ammo: CAP, reloading: false, reloadT: 0, cd: 0, stun: 0, recoil: 0, emptyFlash: 0,
       buildings: SLOTS.map((f, i) => ({ f, h: HEIGHTS[i], alive: true, seed: i * 7919 + 13, smokeT: 0 })),
       shells: [], booms: [], enemies: [], parts: [], texts: [],
-      toSpawn: 0, spawnT: 0, birdT: 1.5, between: false, interT: 0, shake: 0,
+      toSpawn: 0, spawnT: 0, birdT: 1.5, bonusT: 0, powerT: 0, between: false, interT: 0, shake: 0,
       shots: 0, hits: 0, kills: 0,
       aimX: 0, aimY: 0,
     };
@@ -280,6 +283,8 @@
     empty() { tone(260, 200, 0.06, 0.12, 'square'); },
     impact() { noise(1.0, 500, 40, 0.6); tone(90, 30, 0.6, 0.3, 'sine'); },
     bird() { tone(1800, 2600, 0.07, 0.07, 'sine'); setTimeout(() => tone(2000, 1500, 0.08, 0.06, 'sine'), 80); },
+    power() { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => tone(f, f, 0.14, 0.08, 'triangle'), i * 70)); },
+    powerEnd() { tone(800, 300, 0.25, 0.07, 'triangle'); },
     wave() { tone(440, 440, 0.12, 0.06, 'triangle'); setTimeout(() => tone(660, 660, 0.18, 0.06, 'triangle'), 130); },
   };
 
@@ -334,6 +339,12 @@
     }
   }
 
+  function spawnBonus() {
+    const left = Math.random() < 0.5;
+    const y0 = H * (0.14 + Math.random() * 0.22);
+    S.enemies.push({ type: 'bonus', x: left ? -30 * u : W + 30 * u, baseY: y0, y: y0, vx: (left ? 1 : -1) * (120 + Math.random() * 50) * u, vy: 0, r: 15 * u, t: 0, ph: Math.random() * 6 });
+  }
+
   // ---------- effects ----------
   function addText(x, y, txt, color, size = 15) { S.texts.push({ x, y, txt, color, size, t: 0, life: 1.2 }); }
   function burst(x, y, n, colors, speed, life, grav = 0, size = 2) {
@@ -369,21 +380,33 @@
     const dx = tx - sx, dy = ty - sy, d = Math.hypot(dx, dy) || 1;
     const sp = 900 * u;
     S.shells.push({ x: sx, y: sy, tx, ty, vx: (dx / d) * sp, vy: (dy / d) * sp, rem: d, chain: { kills: 0, counted: false } });
-    S.ammo--; S.reloading = false; S.reloadT = 0; S.cd = FIRE_CD; S.recoil = 1; S.shots++;
+    if (S.powerT > 0) { S.cd = FIRE_CD * 0.5; }
+    else { S.ammo--; S.reloading = false; S.reloadT = 0; S.cd = FIRE_CD; }
+    S.recoil = 1; S.shots++;
     burst(sx, sy, 8, ['#fff1c2', '#ffc857', '#ff9a3c'], 120, 0.25);
     sfx.shot();
   }
   function startReload() {
     if (S.mode !== 'play') return;
     ensureAudio();
-    if (S.ammo >= CAP || S.stun > 0 || S.reloading) return;
+    if (S.ammo >= CAP || S.stun > 0 || S.reloading || S.powerT > 0) return;
     S.reloading = true; S.reloadT = 0;
   }
   function kill(e, chain) {
     e.dead = true;
+    if (e.type === 'bonus') {
+      S.powerT = POWER_TIME; S.ammo = CAP; S.reloading = false; S.reloadT = 0; S.stun = 0;
+      S.score += 250;
+      if (chain) { chain.kills++; if (!chain.counted) { chain.counted = true; S.hits++; } }
+      addText(e.x, e.y - 14 * u, '+250  UNLIMITED AMMO!', '#7ff0d0', 17);
+      burst(e.x, e.y, 30, ['#7ff0d0', '#ffffff', '#ffe066'], 200, 0.9, 30, 2.6);
+      banner('∞ UNLIMITED AMMO', `${POWER_TIME} seconds of rapid fire. Go!`);
+      sfx.power();
+      return;
+    }
     if (e.type === 'bird') {
       S.score = Math.max(0, S.score - 50);
-      addText(e.x, e.y - 10 * u, 'ציפור! −50', '#ff8a7a', 15);
+      addText(e.x, e.y - 10 * u, 'Bird! −50', '#ff8a7a', 15);
       burst(e.x, e.y, 14, ['#ffffff', '#dfe6ff', '#c9d2f0'], 70, 1.1, 40, 2.2);
       sfx.bird();
       return;
@@ -394,7 +417,7 @@
     const mult = 1 + (chain.kills - 1) * 0.5;
     const pts = Math.round(PTS[e.type] * mult);
     S.score += pts;
-    addText(e.x, e.y - 12 * u, chain.kills > 1 ? `+${pts} שרשרת ×${chain.kills}` : `+${pts}`, chain.kills > 1 ? '#7ff0d0' : '#ffd88a', chain.kills > 1 ? 16 : 14);
+    addText(e.x, e.y - 12 * u, chain.kills > 1 ? `+${pts}  CHAIN ×${chain.kills}` : `+${pts}`, chain.kills > 1 ? '#7ff0d0' : '#ffd88a', chain.kills > 1 ? 16 : 14);
     addBoom(e.x, e.y, true, (e.type === 'mirv' ? 38 : 30) * u, chain);
     burst(e.x, e.y, 14, ['#ffe9b0', '#ffb347', '#ff6a3c', '#ffffff'], 160, 0.6, 60);
     sfx.boom();
@@ -405,8 +428,9 @@
     S.shake = Math.min(1, S.shake + 0.8);
     sfx.impact();
     if (e.tgt.cannon) {
+      if (S.powerT > 0) { S.powerT = 0; sfx.powerEnd(); }
       S.ammo = 0; S.reloading = false; S.reloadT = 0; S.stun = 1.8;
-      addText(W / 2, groundY - 70 * u, 'התותח נפגע! המחסנית התרוקנה', '#ff8a7a', 16);
+      addText(W / 2, groundY - 70 * u, 'Cannon hit! Magazine lost', '#ff8a7a', 16);
       return;
     }
     const b = e.tgt.b;
@@ -414,7 +438,7 @@
       b.alive = false;
       const r = bRect(b);
       burst(r.x + r.w / 2, r.y + r.h / 2, 30, ['#2a3155', '#3a4270', '#ffb347', '#6b6f88'], 160, 1.4, 260, 3.2);
-      addText(r.x + r.w / 2, r.y - 16 * u, 'בניין נפגע', '#ff8a7a', 15);
+      addText(r.x + r.w / 2, r.y - 16 * u, 'Building hit', '#ff8a7a', 15);
       if (!aliveB().length) gameOver();
     }
   }
@@ -435,13 +459,14 @@
     S.toSpawn = 6 + S.wave * 3;
     S.spawnT = 1.4;
     S.between = false;
+    S.bonusT = 5 + Math.random() * 10;
     const tips = {
-      1: 'יורים במקום שהטיל יגיע אליו, לא במקום שבו הוא עכשיו',
-      2: 'רחפנים טסים לרוחב וצוללים מעל המטרה',
-      3: 'טילים מהירים בדרך',
-      4: 'טיל צהוב מתפצל לשלושה. יירטו אותו גבוה',
+      1: 'Aim where the missile will be, not where it is',
+      2: 'Drones fly across, then dive onto their target',
+      3: 'Fast missiles incoming',
+      4: 'Yellow missiles split in three. Catch them high',
     };
-    banner(`גל ${S.wave}`, tips[S.wave] || `${S.toSpawn} איומים בדרך`);
+    banner(`Wave ${S.wave}`, tips[S.wave] || `${S.toSpawn} threats incoming`);
     sfx.wave();
   }
   function waveClear() {
@@ -449,12 +474,12 @@
     const alive = aliveB().length;
     const bonus = alive * 100 + S.ammo * 10;
     S.score += bonus;
-    let sub = `בונוס עיר +${bonus}`;
+    let sub = `City bonus +${bonus}`;
     if (S.wave % 2 === 0) {
       const dead = S.buildings.filter((b) => !b.alive);
-      if (dead.length) { dead[0].alive = true; sub += ' · בניין אחד שוקם'; }
+      if (dead.length) { dead[0].alive = true; sub += ' · one building rebuilt'; }
     }
-    banner('הגל נבלם', sub);
+    banner('Wave stopped', sub);
   }
   function gameOver() {
     S.mode = 'over';
@@ -467,7 +492,7 @@
       $('#oWave').textContent = S.wave;
       $('#oKills').textContent = S.kills;
       $('#oAcc').textContent = S.shots ? Math.round((S.hits / S.shots) * 100) + '%' : '–';
-      $('#oBest').textContent = isBest ? 'שיא חדש!' : `השיא שלכם: ${fmt(best)}`;
+      $('#oBest').textContent = isBest ? 'New best score!' : `Your best: ${fmt(best)}`;
       $('#overOv').hidden = false;
       document.body.classList.add('menu');
       $('#againBtn').focus();
@@ -499,8 +524,14 @@
           if (S.ammo >= CAP) { S.ammo = CAP; S.reloading = false; S.reloadT = 0; sfx.full(); } else sfx.load();
         }
       }
+      if (S.powerT > 0) {
+        S.powerT -= dt;
+        if (S.powerT <= 0) { S.powerT = 0; sfx.powerEnd(); addText(W / 2, groundY - 60 * u, 'Unlimited ammo over', '#9aa4c8', 14); }
+      }
       // spawning
       if (!S.between) {
+        S.bonusT -= dt;
+        if (S.bonusT <= 0) { spawnBonus(); S.bonusT = 22 + Math.random() * 14; }
         if (S.toSpawn > 0) {
           S.spawnT -= dt;
           if (S.spawnT <= 0) {
@@ -509,7 +540,7 @@
             const interval = Math.max(0.55, 2.1 - S.wave * 0.14);
             S.spawnT = interval * (0.6 + Math.random() * 0.8);
           }
-        } else if (!S.enemies.some((e) => e.type !== 'bird' && !e.dead)) {
+        } else if (!S.enemies.some((e) => isHostile(e) && !e.dead)) {
           waveClear();
         }
       } else {
@@ -538,9 +569,9 @@
     for (const e of S.enemies) {
       if (e.dead) continue;
       e.t += dt;
-      if (e.type === 'bird') {
+      if (e.type === 'bird' || e.type === 'bonus') {
         e.x += e.vx * dt;
-        e.y = e.baseY + Math.sin(e.t * 2.6 + e.ph) * 12 * u;
+        e.y = e.baseY + Math.sin(e.t * (e.type === 'bonus' ? 3.4 : 2.6) + e.ph) * (e.type === 'bonus' ? 30 : 12) * u;
         if (e.x < -80 || e.x > W + 80) e.gone = true;
         continue;
       }
@@ -699,6 +730,7 @@
   function drawEnemies() {
     for (const e of S.enemies) {
       if (e.type === 'bird') { drawBird(e); continue; }
+      if (e.type === 'bonus') { drawBonus(e); continue; }
       if (e.type === 'drone') { drawDrone(e); continue; }
       const c = COLORS[e.type];
       drawTrail(e.trail, e.x, e.y, c.trail);
@@ -719,6 +751,20 @@
       ctx.fillStyle = '#fff3c8'; ctx.beginPath(); ctx.arc(-len - 2 * u, 0, 2.2 * u, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
     }
+  }
+  function drawBonus(e) {
+    const pulse = 1 + Math.sin(e.t * 8) * 0.12;
+    const R = 12 * u * pulse;
+    const gl = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, R * 3);
+    gl.addColorStop(0, 'rgba(127,240,208,0.55)'); gl.addColorStop(1, 'rgba(127,240,208,0)');
+    ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(e.x, e.y, R * 3, 0, Math.PI * 2); ctx.fill();
+    const og = ctx.createRadialGradient(e.x - R * 0.3, e.y - R * 0.3, 1, e.x, e.y, R);
+    og.addColorStop(0, '#ffffff'); og.addColorStop(0.5, '#ffe066'); og.addColorStop(1, '#e0a020');
+    ctx.fillStyle = og; ctx.beginPath(); ctx.arc(e.x, e.y, R, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(127,240,208,0.9)'; ctx.lineWidth = 2 * u;
+    ctx.beginPath(); ctx.arc(e.x, e.y, R + 5 * u, e.t * 4, e.t * 4 + Math.PI * 1.4); ctx.stroke();
+    ctx.fillStyle = '#3a2a05'; ctx.font = `800 ${Math.round(15 * u)}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('∞', e.x, e.y + 1 * u);
   }
   function drawDrone(e) {
     const ang = e.diving ? Math.atan2(e.vy, e.vx) : (e.vx > 0 ? 0 : Math.PI);
@@ -808,14 +854,26 @@
     dg.addColorStop(0, '#6c77ad'); dg.addColorStop(1, '#2f3768');
     ctx.fillStyle = dg;
     ctx.beginPath(); ctx.arc(p.x, p.y + 6 * u, 22 * u, Math.PI, 0); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = S.ammo > 0 && S.stun <= 0 ? '#ffc857' : '#ff5a3c';
+    ctx.fillStyle = S.powerT > 0 ? '#7ff0d0' : S.ammo > 0 && S.stun <= 0 ? '#ffc857' : '#ff5a3c';
     ctx.beginPath(); ctx.arc(p.x, p.y - 4 * u, 3 * u, 0, Math.PI * 2); ctx.fill();
+    if (S.powerT > 0) {
+      ctx.strokeStyle = `rgba(127,240,208,${0.35 + 0.25 * Math.sin(S.time * 10)})`; ctx.lineWidth = 2 * u;
+      ctx.beginPath(); ctx.arc(p.x, p.y + 6 * u, 30 * u, Math.PI, 0); ctx.stroke();
+    }
   }
   function drawAmmo() {
     if (S.mode === 'menu') return;
     const cx = W / 2, y = groundY + 18 * u, sw = 9 * u, sh = 20 * u, gap = 6 * u;
     const total = CAP * sw + (CAP - 1) * gap;
     let x0 = cx - total / 2;
+    if (S.powerT > 0) {
+      const f = S.powerT / POWER_TIME, bw = 150 * u, bh = 8 * u;
+      ctx.fillStyle = 'rgba(127,240,208,0.18)'; roundRect(cx - bw / 2, y + 4 * u, bw, bh, 4 * u); ctx.fill();
+      ctx.fillStyle = '#7ff0d0'; roundRect(cx - bw / 2, y + 4 * u, Math.max(bh, bw * f), bh, 4 * u); ctx.fill();
+      ctx.font = `800 ${Math.round(12 * u + 2)}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.direction = 'ltr';
+      ctx.fillStyle = '#7ff0d0'; ctx.fillText(`∞ UNLIMITED AMMO  ${S.powerT.toFixed(1)}s`, cx, y + sh + 6 * u);
+      return;
+    }
     for (let i = 0; i < CAP; i++) {
       const x = x0 + i * (sw + gap);
       ctx.strokeStyle = 'rgba(255,200,87,0.45)'; ctx.lineWidth = 1.2 * u;
@@ -831,20 +889,20 @@
       }
     }
     ctx.font = `600 ${Math.round(12 * u + 2)}px ${FONT}`;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.direction = 'rtl';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.direction = 'ltr';
     const ty = y + sh + 6 * u;
-    if (S.stun > 0) { ctx.fillStyle = '#ff8a7a'; ctx.fillText('התותח משותק…', cx, ty); }
-    else if (S.reloading) { ctx.fillStyle = '#ffd88a'; ctx.fillText('טוען…', cx, ty); }
+    if (S.stun > 0) { ctx.fillStyle = '#ff8a7a'; ctx.fillText('Cannon jammed…', cx, ty); }
+    else if (S.reloading) { ctx.fillStyle = '#ffd88a'; ctx.fillText('Loading…', cx, ty); }
     else if (S.ammo === 0 && S.mode === 'play') {
       ctx.fillStyle = Math.sin(S.time * 10) > -0.2 || S.emptyFlash > 0 ? '#ff5a3c' : 'rgba(255,90,60,0.4)';
-      ctx.fillText(finePointer ? 'המחסנית ריקה! R לטעינה' : 'המחסנית ריקה! לחצו טען', cx, ty);
+      ctx.fillText(finePointer ? 'EMPTY! Press R to reload' : 'EMPTY! Tap LOAD', cx, ty);
     }
   }
   function roundRect(x, y, w, h, r) {
     ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
   }
   function drawTexts() {
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.direction = 'rtl';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.direction = 'ltr';
     for (const t of S.texts) {
       ctx.globalAlpha = Math.min(1, 2 * (1 - t.t / t.life));
       ctx.font = `800 ${Math.round(t.size * u + 2)}px ${FONT}`;
@@ -857,7 +915,7 @@
   function drawCrosshair() {
     if (!finePointer || S.mode !== 'play' || !pointerIn) return;
     const x = S.aimX, y = Math.min(S.aimY, groundY - 26 * u), r = 11 * u;
-    const col = S.ammo > 0 && S.stun <= 0 ? '#ffc857' : '#ff5a3c';
+    const col = S.powerT > 0 ? '#7ff0d0' : S.ammo > 0 && S.stun <= 0 ? '#ffc857' : '#ff5a3c';
     ctx.strokeStyle = col; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
     ctx.beginPath();
@@ -869,7 +927,7 @@
   }
 
   // ---------- HUD ----------
-  const fmt = (n) => n.toLocaleString('he-IL');
+  const fmt = (n) => n.toLocaleString('en-US');
   const hudCache = {};
   function setText(id, v) { if (hudCache[id] !== v) { hudCache[id] = v; document.getElementById(id).textContent = v; } }
   function hud() {
@@ -879,6 +937,7 @@
     const rb = $('#reloadBtn');
     rb.classList.toggle('urgent', S.mode === 'play' && S.ammo === 0 && !S.reloading && S.stun <= 0);
     rb.classList.toggle('busy', S.reloading);
+    rb.classList.toggle('inf', S.powerT > 0);
     rb.hidden = S.mode === 'menu' && !$('#startOv').hidden;
   }
 
@@ -912,7 +971,7 @@
   $('#againBtn').addEventListener('click', startGame);
   $('#resumeBtn').addEventListener('click', () => setPaused(false));
   $('#pauseBtn').addEventListener('click', (ev) => { ev.currentTarget.blur(); setPaused(S.mode === 'play'); });
-  $('#muteBtn').addEventListener('click', (ev) => { muted = !muted; ev.currentTarget.textContent = muted ? 'צליל: כבוי' : 'צליל: פועל'; ev.currentTarget.blur(); });
+  $('#muteBtn').addEventListener('click', (ev) => { muted = !muted; ev.currentTarget.textContent = muted ? 'Sound: off' : 'Sound: on'; ev.currentTarget.blur(); });
   window.addEventListener('keydown', (ev) => {
     const k = ev.key.toLowerCase();
     if (k === 'r' || k === 'ר' || k === ' ' || k === 'arrowdown') {
