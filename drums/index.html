@@ -154,6 +154,13 @@
   .tri { width: 0; height: 0; border-block: 7px solid transparent; border-inline-end: 11px solid currentColor; }
   .btn.playing { border-color: var(--accent); color: var(--accent); }
   @keyframes pulse { 50% { transform: scale(.6); opacity: .5; } }
+  .sound-btn {
+    appearance: none; font: inherit; cursor: pointer; align-self: center;
+    padding: 10px 20px; border-radius: 999px; border: 0;
+    background: var(--accent); color: #fff; font-size: 1rem;
+    box-shadow: 0 4px 0 color-mix(in srgb, var(--accent) 70%, #000);
+  }
+  .sound-btn:focus-visible { outline: 3px solid var(--fg); outline-offset: 2px; }
   .status { color: var(--muted); font-size: .9rem; min-height: 1.3em; text-align: center; margin: 0; }
 
   @media (prefers-reduced-motion: reduce) {
@@ -170,6 +177,8 @@
     </div>
     <div class="count">מכות: <b id="count">0</b></div>
   </header>
+
+  <button class="sound-btn" id="sound" type="button">🔊 לא שומעים? לחצו כאן להפעלת הצליל</button>
 
   <main class="stage" id="stage" aria-label="ערכת תופים"></main>
 
@@ -226,20 +235,50 @@
 
   /* ---------- Sound: everything synthesized with Web Audio, no samples ---------- */
   let ctx, master, noiseBuf;
+  // A short silent WAV played through an <audio> element moves iPhone into "playback" mode,
+  // so the drums are heard even when the ring/silent switch is on.
+  function silentWav() {
+    const n = 4410, b = new DataView(new ArrayBuffer(44 + n * 2));
+    const w = (o, str) => [...str].forEach((c, i) => b.setUint8(o + i, c.charCodeAt(0)));
+    w(0, 'RIFF'); b.setUint32(4, 36 + n * 2, true); w(8, 'WAVEfmt ');
+    b.setUint32(16, 16, true); b.setUint16(20, 1, true); b.setUint16(22, 1, true);
+    b.setUint32(24, 44100, true); b.setUint32(28, 88200, true); b.setUint16(32, 2, true); b.setUint16(34, 16, true);
+    w(36, 'data'); b.setUint32(40, n * 2, true);
+    let bin = ''; new Uint8Array(b.buffer).forEach(x => bin += String.fromCharCode(x));
+    return 'data:audio/wav;base64,' + btoa(bin);
+  }
+  let unlockEl;
   function audio() {
     if (!ctx) {
+      try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
       ctx = new (window.AudioContext || window.webkitAudioContext)();
       const comp = ctx.createDynamicsCompressor();
       comp.threshold.value = -10; comp.ratio.value = 4;
-      master = ctx.createGain(); master.gain.value = 0.8;
+      master = ctx.createGain(); master.gain.value = 0.9;
       master.connect(comp).connect(ctx.destination);
       noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
       const data = noiseBuf.getChannelData(0);
       for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+      ctx.onstatechange = showSoundState;
     }
-    if (ctx.state === 'suspended') ctx.resume();
+    if (ctx.state !== 'running') {
+      ctx.resume().then(showSoundState, () => {});
+      // classic unlock: play one silent sample inside the gesture
+      const s = ctx.createBufferSource(); s.buffer = ctx.createBuffer(1, 1, 22050); s.connect(ctx.destination); s.start(0);
+    }
+    if (!unlockEl) {
+      unlockEl = new Audio(silentWav()); unlockEl.loop = true; unlockEl.volume = 0.01;
+      unlockEl.setAttribute('playsinline', '');
+    }
+    if (unlockEl.paused) unlockEl.play().catch(() => {});
+    showSoundState();
     return ctx;
   }
+  const soundBtn = document.getElementById('sound');
+  function showSoundState() { soundBtn.hidden = !!ctx && ctx.state === 'running'; }
+  soundBtn.addEventListener('click', () => { audio(); SOUNDS.kick(ctx.currentTime + 0.01); });
+  // Phones only count pointerup/touchend/click as a "real" tap for audio, so unlock on all of them.
+  ['pointerup', 'touchend', 'click', 'keydown'].forEach(ev => addEventListener(ev, () => audio(), { capture: true, passive: true }));
   function env(g, t, peak, decay, attack = 0.002) {
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(peak, t + attack);
