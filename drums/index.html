@@ -1,0 +1,383 @@
+<title>דום טק</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Secular+One&family=Varela+Round&display=swap">
+<style>
+  /* Layout: one-screen app — header, a "rug" stage holding a 4×2 grid of drum characters (2×4 on phones), a loop recorder bar */
+  :root {
+    --bg: #eef0ff;
+    --bg2: #fbe9f4;
+    --fg: #2c2350;
+    --muted: #6d6492;
+    --rug: #ffffff;
+    --rug-edge: #d9d6f5;
+    --accent: #ff5d8f;
+    --rec: #ff4d4d;
+    --ink: #33264d;          /* face lines — always drawn on pastel skins */
+    --blush: #ff8fab;
+    --font-display: "Secular One", "Arial Rounded MT Bold", system-ui, sans-serif;
+    --font-body: "Varela Round", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1c1833; --bg2: #2a1c3a; --fg: #f2eeff; --muted: #a79fcb;
+      --rug: #2a2547; --rug-edge: #3d3766; --accent: #ff7aa5; --rec: #ff6b6b;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1c1833; --bg2: #2a1c3a; --fg: #f2eeff; --muted: #a79fcb;
+    --rug: #2a2547; --rug-edge: #3d3766; --accent: #ff7aa5; --rec: #ff6b6b;
+    color-scheme: dark;
+  }
+
+  html, body { height: 100%; }
+  * { box-sizing: border-box; }
+  body {
+    background: radial-gradient(120% 80% at 80% 0%, var(--bg2), transparent 60%), var(--bg);
+    color: var(--fg);
+    font-family: var(--font-body);
+    font-size: 15px;
+    direction: rtl;
+    padding-block: 20px 24px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .app { max-width: 880px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+
+  header { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2.2rem, 7vw, 3.4rem);
+    line-height: 1; margin: 0; letter-spacing: .01em;
+    text-wrap: balance;
+  }
+  h1 span { color: var(--accent); display: inline-block; }
+  .sub { margin: 6px 0 0; color: var(--muted); }
+  .count {
+    font-variant-numeric: tabular-nums; color: var(--muted);
+    background: var(--rug); border: 2px solid var(--rug-edge);
+    padding: 6px 14px; border-radius: 999px; white-space: nowrap;
+  }
+  .count b { color: var(--fg); font-family: var(--font-display); font-weight: 400; font-size: 1.15em; }
+
+  .stage {
+    position: relative;
+    background: var(--rug);
+    border: 2px solid var(--rug-edge);
+    border-radius: 36px;
+    padding: clamp(16px, 3vw, 28px);
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: clamp(12px, 2.5vw, 24px);
+    box-shadow: 0 18px 40px -24px rgba(60, 40, 120, .45);
+  }
+  @media (max-width: 560px) { .stage { grid-template-columns: repeat(2, minmax(0, 1fr)); border-radius: 28px; } }
+
+  .pad {
+    appearance: none; border: 0; background: none; padding: 0; margin: 0;
+    font: inherit; color: inherit; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    touch-action: manipulation;
+    outline: none;
+  }
+  .skin {
+    position: relative;
+    width: 100%; max-width: 170px; aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle at 38% 32%, #fff 0 6%, var(--c) 42%, var(--c2) 100%);
+    border: 7px solid var(--rim);
+    box-shadow: 0 8px 0 var(--rim), 0 14px 18px -6px rgba(40, 20, 80, .35);
+    transition: box-shadow .12s;
+  }
+  .skin.cymbal {
+    background:
+      repeating-radial-gradient(circle at 50% 50%, transparent 0 7px, rgba(255,255,255,.28) 7px 8px),
+      radial-gradient(circle at 50% 50%, var(--rim) 0 8%, var(--c) 9% 60%, var(--c2) 100%);
+    border-width: 4px;
+  }
+  .pad:focus-visible .skin { outline: 4px solid var(--accent); outline-offset: 6px; }
+  .pad.hit .skin { box-shadow: 0 3px 0 var(--rim), 0 6px 10px -6px rgba(40, 20, 80, .35); }
+
+  .face { position: absolute; inset: 14%; width: 72%; height: 72%; overflow: visible; }
+  .face * { stroke: var(--ink); stroke-width: 3.2; stroke-linecap: round; fill: none; }
+  .face .eye { fill: var(--ink); stroke: none; transform-box: fill-box; transform-origin: center; animation: blink 5s infinite; animation-delay: var(--blink, 0s); }
+  .face .shine { fill: #fff; stroke: none; }
+  .face .blush { fill: var(--blush); stroke: none; opacity: .55; }
+  .face .mouth-o { fill: var(--ink); }
+  .face .happy, .face .mouth-o { display: none; }
+  .pad.hit .face .open, .pad.hit .face .mouth-smile { display: none; }
+  .pad.hit .face .happy, .pad.hit .face .mouth-o { display: inline; }
+  @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+
+  .ring {
+    position: absolute; inset: -7px; border-radius: 50%;
+    border: 4px solid var(--c); pointer-events: none; opacity: 0;
+  }
+
+  .label { display: flex; align-items: center; gap: 8px; font-size: 1rem; }
+  kbd {
+    font-family: var(--font-body); font-size: .8rem; min-width: 26px; text-align: center;
+    padding: 3px 7px; border-radius: 8px;
+    background: var(--bg); border: 2px solid var(--rug-edge); border-bottom-width: 4px;
+    color: var(--muted);
+  }
+  @media (hover: none) { kbd { display: none; } }
+
+  .note {
+    position: fixed; pointer-events: none; z-index: 5;
+    font-size: 26px; font-family: var(--font-display);
+    color: var(--nc); text-shadow: 0 2px 0 rgba(0,0,0,.08);
+  }
+
+  .bar {
+    display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap;
+  }
+  .btn {
+    appearance: none; font: inherit; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 18px; border-radius: 999px;
+    background: var(--rug); color: var(--fg);
+    border: 2px solid var(--rug-edge); border-bottom-width: 4px;
+    transition: transform .08s;
+  }
+  .btn:active { transform: translateY(2px); border-bottom-width: 2px; }
+  .btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--rec); }
+  .btn.recording { border-color: var(--rec); color: var(--rec); }
+  .btn.recording .dot { animation: pulse 1s infinite; }
+  .tri { width: 0; height: 0; border-block: 7px solid transparent; border-inline-end: 11px solid currentColor; }
+  .btn.playing { border-color: var(--accent); color: var(--accent); }
+  @keyframes pulse { 50% { transform: scale(.6); opacity: .5; } }
+  .status { color: var(--muted); font-size: .9rem; min-height: 1.3em; text-align: center; margin: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .face .eye { animation: none; }
+    .btn.recording .dot { animation: none; }
+  }
+</style>
+
+<div class="app">
+  <header>
+    <div>
+      <h1>דום <span id="tak">טק!</span></h1>
+      <p class="sub">תקישו על התופים, או על המקשים במקלדת. אין טעויות, רק רעש.</p>
+    </div>
+    <div class="count">מכות: <b id="count">0</b></div>
+  </header>
+
+  <main class="stage" id="stage" aria-label="ערכת תופים"></main>
+
+  <div class="bar">
+    <button class="btn" id="rec" type="button"><span class="dot"></span><span id="recLabel">הקלטת לופ</span></button>
+    <button class="btn" id="play" type="button" disabled><span class="tri"></span><span id="playLabel">נגן לופ</span></button>
+    <button class="btn" id="clear" type="button" disabled>מחיקה</button>
+  </div>
+  <p class="status" id="status">טיפ: הקליטו קצב קצר והוא יתנגן שוב ושוב.</p>
+</div>
+
+<script>
+(() => {
+  const DRUMS = [
+    { id: 'crash',  name: 'מצילה',      key: 'KeyA', cap: 'A', c: '#ffe08a', c2: '#f4b942', rim: '#c98a1c', cymbal: true },
+    { id: 'hihat',  name: 'היי-האט',    key: 'KeyS', cap: 'S', c: '#fff1b0', c2: '#e8c75a', rim: '#b8952b', cymbal: true },
+    { id: 'tom1',   name: 'טום קטן',    key: 'KeyD', cap: 'D', c: '#a8e6ff', c2: '#5cc1ee', rim: '#2f8fbf' },
+    { id: 'tom2',   name: 'טום גדול',   key: 'KeyF', cap: 'F', c: '#c9b8ff', c2: '#9a7cf2', rim: '#6a4cc4' },
+    { id: 'snare',  name: 'סנר',        key: 'KeyJ', cap: 'J', c: '#b4f0d0', c2: '#5fd39b', rim: '#2b9e68' },
+    { id: 'kick',   name: 'בס',         key: 'KeyK', cap: 'K', c: '#ffb3c7', c2: '#ff6f98', rim: '#cf3d6b' },
+    { id: 'clap',   name: 'מחיאה',      key: 'KeyL', cap: 'L', c: '#ffc9a8', c2: '#ff9a64', rim: '#d16a2f' },
+    { id: 'bell',   name: 'פעמון פרה',  key: 'Semicolon', cap: ';', c: '#d9f59a', c2: '#a6d84a', rim: '#6f9d1d' },
+  ];
+  // Hebrew keyboard: the same physical keys, so event.code covers both layouts.
+  const ALT = { Space: 'kick' };
+
+  const stage = document.getElementById('stage');
+  const faceSVG = `
+    <svg class="face" viewBox="0 0 100 100" aria-hidden="true">
+      <g class="open">
+        <ellipse class="eye" cx="34" cy="44" rx="6" ry="8"/><circle class="shine" cx="36" cy="41" r="2"/>
+        <ellipse class="eye" cx="66" cy="44" rx="6" ry="8"/><circle class="shine" cx="68" cy="41" r="2"/>
+      </g>
+      <g class="happy"><path d="M27 46 q7 -10 14 0"/><path d="M59 46 q7 -10 14 0"/></g>
+      <ellipse class="blush" cx="22" cy="60" rx="7" ry="4.5"/>
+      <ellipse class="blush" cx="78" cy="60" rx="7" ry="4.5"/>
+      <path class="mouth-smile" d="M42 60 q8 8 16 0"/>
+      <ellipse class="mouth-o" cx="50" cy="64" rx="6" ry="7"/>
+    </svg>`;
+
+  const pads = {};
+  DRUMS.forEach((d, i) => {
+    const b = document.createElement('button');
+    b.className = 'pad'; b.type = 'button'; b.id = 'pad-' + d.id;
+    b.setAttribute('aria-label', d.name);
+    b.style.setProperty('--c', d.c); b.style.setProperty('--c2', d.c2); b.style.setProperty('--rim', d.rim);
+    b.innerHTML = `<div class="skin${d.cymbal ? ' cymbal' : ''}" style="--blink:${(i * 0.73) % 5}s">${faceSVG}<span class="ring"></span></div>
+                   <div class="label"><span>${d.name}</span><kbd>${d.cap}</kbd></div>`;
+    b.addEventListener('pointerdown', e => { e.preventDefault(); hit(d.id); });
+    b.addEventListener('keydown', e => { if (e.code === 'Enter') { e.preventDefault(); hit(d.id); } });
+    stage.appendChild(b);
+    pads[d.id] = { el: b, skin: b.querySelector('.skin'), ring: b.querySelector('.ring'), d };
+  });
+
+  /* ---------- Sound: everything synthesized with Web Audio, no samples ---------- */
+  let ctx, master, noiseBuf;
+  function audio() {
+    if (!ctx) {
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -10; comp.ratio.value = 4;
+      master = ctx.createGain(); master.gain.value = 0.8;
+      master.connect(comp).connect(ctx.destination);
+      noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+      const data = noiseBuf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    }
+    if (ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  }
+  function env(g, t, peak, decay, attack = 0.002) {
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + decay);
+  }
+  function noise(t, dur) {
+    const s = ctx.createBufferSource(); s.buffer = noiseBuf;
+    s.start(t, Math.random()); s.stop(t + dur + 0.05); return s;
+  }
+  function tone(type, f0, f1, t, dur, peak, sweep = 0.12) {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(f0, t);
+    if (f1) o.frequency.exponentialRampToValueAtTime(f1, t + sweep);
+    env(g, t, peak, dur); o.connect(g).connect(master);
+    o.start(t); o.stop(t + dur + 0.05);
+  }
+  function filtered(t, dur, peak, type, freq, q = 1) {
+    const f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
+    const g = ctx.createGain(); env(g, t, peak, dur);
+    noise(t, dur).connect(f).connect(g).connect(master);
+  }
+  const SOUNDS = {
+    kick:  t => { tone('sine', 160, 42, t, 0.5, 1.0, 0.13); tone('triangle', 90, 40, t, 0.08, 0.4, 0.05); },
+    snare: t => { filtered(t, 0.22, 0.7, 'highpass', 1200); tone('triangle', 220, 160, t, 0.12, 0.5, 0.08); },
+    hihat: t => { filtered(t, 0.06, 0.45, 'highpass', 7500); },
+    crash: t => { filtered(t, 1.4, 0.5, 'highpass', 5000); filtered(t, 0.9, 0.25, 'bandpass', 3200, 0.7); },
+    tom1:  t => { tone('sine', 300, 190, t, 0.38, 0.85, 0.25); },
+    tom2:  t => { tone('sine', 190, 110, t, 0.5, 0.95, 0.3); },
+    clap:  t => { [0, 0.012, 0.024].forEach(o => filtered(t + o, 0.03, 0.6, 'bandpass', 1400, 1.5)); filtered(t + 0.036, 0.2, 0.55, 'bandpass', 1400, 1.2); },
+    bell:  t => {
+      const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 800; f.Q.value = 1.5;
+      const g = ctx.createGain(); env(g, t, 0.5, 0.35); f.connect(g).connect(master);
+      [540, 800].forEach(fr => { const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = fr; o.connect(f); o.start(t); o.stop(t + 0.4); });
+    },
+  };
+
+  /* ---------- Hits & visuals ---------- */
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const countEl = document.getElementById('count');
+  const takEl = document.getElementById('tak');
+  let count = 0;
+  const NOTES = ['♪', '♫', '♩', '♬'];
+
+  function hit(id, fromLoop = false) {
+    const p = pads[id]; if (!p) return;
+    audio(); SOUNDS[id](ctx.currentTime + 0.005);
+    if (!fromLoop) record(id);
+    count++; countEl.textContent = count;
+
+    p.el.classList.add('hit');
+    clearTimeout(p.timer);
+    p.timer = setTimeout(() => p.el.classList.remove('hit'), 170);
+    if (reduce) return;
+
+    const big = id === 'kick' || id === 'tom2';
+    p.skin.animate([
+      { transform: 'scale(1)' },
+      { transform: `scale(${big ? 1.08 : 1.06}, ${big ? .86 : .9}) translateY(4px)` },
+      { transform: 'scale(.97, 1.04)' },
+      { transform: 'scale(1)' },
+    ], { duration: 280, easing: 'ease-out' });
+    p.ring.animate([
+      { transform: 'scale(1)', opacity: .9 },
+      { transform: 'scale(1.35)', opacity: 0 },
+    ], { duration: 450, easing: 'ease-out' });
+    if (id === 'snare' || id === 'clap') takEl.animate([{ transform: 'rotate(-8deg) scale(1.15)' }, { transform: 'none' }], { duration: 220 });
+    spawnNote(p);
+  }
+
+  function spawnNote(p) {
+    const r = p.skin.getBoundingClientRect();
+    const n = document.createElement('span');
+    n.className = 'note';
+    n.textContent = NOTES[Math.floor(Math.random() * NOTES.length)];
+    n.style.setProperty('--nc', p.d.rim);
+    n.style.left = (r.left + r.width / 2 - 10 + (Math.random() - .5) * r.width * .5) + 'px';
+    n.style.top = (r.top + r.height * .2) + 'px';
+    document.body.appendChild(n);
+    const dx = (Math.random() - .5) * 60, rot = (Math.random() - .5) * 50;
+    n.animate([
+      { transform: 'translate(0,0) scale(.6)', opacity: 0 },
+      { transform: `translate(${dx * .3}px,-20px) scale(1.1)`, opacity: 1, offset: .2 },
+      { transform: `translate(${dx}px,-90px) rotate(${rot}deg) scale(1)`, opacity: 0 },
+    ], { duration: 900, easing: 'ease-out' }).onfinish = () => n.remove();
+  }
+
+  const byCode = {};
+  DRUMS.forEach(d => byCode[d.key] = d.id);
+  Object.assign(byCode, ALT);
+  addEventListener('keydown', e => {
+    if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+    const id = byCode[e.code];
+    if (id) { e.preventDefault(); hit(id); }
+  });
+
+  /* ---------- Loop recorder ---------- */
+  const recBtn = document.getElementById('rec'), playBtn = document.getElementById('play'), clearBtn = document.getElementById('clear');
+  const recLabel = document.getElementById('recLabel'), playLabel = document.getElementById('playLabel'), status = document.getElementById('status');
+  let recording = false, t0 = 0, events = [], loopLen = 0, playing = false, timers = [];
+
+  function record(id) { if (recording) events.push({ id, t: performance.now() - t0 }); }
+
+  recBtn.addEventListener('click', () => {
+    audio();
+    if (!recording) {
+      stopLoop(); recording = true; events = []; t0 = performance.now();
+      recBtn.classList.add('recording'); recLabel.textContent = 'סיום הקלטה';
+      playBtn.disabled = true; clearBtn.disabled = true;
+      status.textContent = 'מקליטים… תנגנו משהו ולחצו "סיום הקלטה".';
+    } else {
+      recording = false;
+      recBtn.classList.remove('recording'); recLabel.textContent = 'הקלטת לופ';
+      if (!events.length) { status.textContent = 'לא נקלטו מכות. נסו שוב.'; return; }
+      loopLen = Math.max(1000, performance.now() - t0);
+      clearBtn.disabled = false; playBtn.disabled = false;
+      status.textContent = `הוקלטו ${events.length} מכות, לופ של ${(loopLen / 1000).toFixed(1)} שניות. אפשר לנגן מעליו!`;
+      startLoop();
+    }
+  });
+  playBtn.addEventListener('click', () => playing ? stopLoop() : startLoop());
+  clearBtn.addEventListener('click', () => {
+    stopLoop(); events = []; loopLen = 0;
+    playBtn.disabled = true; clearBtn.disabled = true;
+    status.textContent = 'הלופ נמחק.';
+  });
+
+  function cycle() {
+    events.forEach(ev => timers.push(setTimeout(() => hit(ev.id, true), ev.t)));
+    timers.push(setTimeout(cycle, loopLen));
+  }
+  function startLoop() {
+    if (!events.length) return;
+    stopLoop(); playing = true; cycle();
+    playBtn.classList.add('playing'); playLabel.textContent = 'עצירה';
+  }
+  function stopLoop() {
+    timers.forEach(clearTimeout); timers = []; playing = false;
+    playBtn.classList.remove('playing'); playLabel.textContent = 'נגן לופ';
+  }
+})();
+</script>
