@@ -87,12 +87,56 @@
   .card h1 span { color: var(--tracer); }
   .card h2 { margin: 0; font-size: 30px; font-weight: 800; }
   .card p { margin: 0; color: #c8cee6; line-height: 1.55; font-size: 15px; }
-  .rules { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 14px; line-height: 1.45; }
-  .rules li { display: grid; grid-template-columns: 128px 1fr; gap: 10px; align-items: baseline; }
-  .rules b { color: var(--tracer); font-weight: 600; font-size: 13px; }
-  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); }
-  .legend span { display: inline-flex; align-items: center; gap: 6px; }
-  .legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .brief { max-width: 600px; gap: 16px; }
+  .brief-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .step-lbl { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .link { background: none; border: 0; color: var(--muted); font: 600 13px var(--font-ui); cursor: pointer; padding: 4px 0; text-decoration: underline; text-underline-offset: 3px; }
+  .link:hover { color: var(--ink); }
+  .step { display: flex; flex-direction: column; gap: 14px; }
+  .step h2 { font-size: 26px; }
+  .card p.lead { font-size: 16px; color: var(--ink); }
+  .card p.note { font-size: 13px; color: var(--muted); }
+  .demo { display: block; width: 100%; height: 76px; border-radius: 8px; background: linear-gradient(180deg, #080c20, #1b2046); }
+  .demo.wide { height: 170px; }
+  .goals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .goals div { background: rgba(255, 255, 255, 0.04); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; }
+  .goals b { font-size: 26px; font-weight: 800; color: var(--tracer); line-height: 1; font-variant-numeric: tabular-nums; }
+  .goals span { font-size: 13px; color: #c8cee6; line-height: 1.3; }
+  .ctrl { display: grid; grid-template-columns: 160px 1fr; gap: 12px; align-items: start; padding-top: 12px; border-top: 1px solid var(--line); }
+  .ctrl:first-of-type { border-top: 0; padding-top: 0; }
+  .keys { display: flex; flex-wrap: wrap; gap: 6px; }
+  kbd { font: 700 12px var(--font-ui); color: var(--ink); background: #1e2650; border: 1px solid #3a4580; border-bottom-width: 3px; border-radius: 6px; padding: 3px 8px; }
+  .ctrl b { display: block; font-size: 15px; margin-bottom: 3px; }
+  .ctrl span { font-size: 14px; color: #c8cee6; line-height: 1.45; }
+  .mag { display: flex; gap: 5px; margin-top: 10px; }
+  .mag i { width: 9px; height: 20px; border-radius: 3px; border: 1px solid rgba(255, 200, 87, 0.5); background: linear-gradient(var(--tracer), var(--tracer)) bottom / 100% 0% no-repeat; animation: magfill 3.6s linear infinite; }
+  .mag i:nth-child(2) { animation-delay: 0.4s; } .mag i:nth-child(3) { animation-delay: 0.8s; }
+  .mag i:nth-child(4) { animation-delay: 1.2s; } .mag i:nth-child(5) { animation-delay: 1.6s; } .mag i:nth-child(6) { animation-delay: 2s; }
+  @keyframes magfill { 0% { background-size: 100% 0%; } 11% { background-size: 100% 100%; } 88% { background-size: 100% 100%; } 89%, 100% { background-size: 100% 0%; } }
+  .threats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .threat { background: rgba(255, 255, 255, 0.04); border: 1px solid transparent; border-radius: 10px; padding: 8px 8px 10px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .threat.friend { grid-column: 1 / -1; display: grid; grid-template-columns: 130px 1fr; gap: 12px; align-items: center; border-color: rgba(255, 90, 60, 0.35); }
+  .threat .info { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding-inline: 2px; }
+  .t-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .t-head b { font-size: 15px; }
+  .tag { font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+  .tag.bad { color: var(--threat); }
+  .card .threat p, .card .bonus p { font-size: 13px; line-height: 1.4; }
+  .pts { font: 800 13px var(--font-ui); color: var(--tracer); font-variant-numeric: tabular-nums; }
+  .pts.bad { color: var(--threat); }
+  .bonuses { display: grid; gap: 10px; }
+  .bonus { display: grid; grid-template-columns: 76px 1fr; gap: 12px; align-items: center; background: rgba(255, 255, 255, 0.04); border-radius: 10px; padding: 8px; }
+  .bonus .demo { height: 64px; }
+  .bonus b { font-size: 15px; }
+  .nav { display: flex; align-items: center; gap: 10px; }
+  .dots { display: flex; gap: 6px; margin-inline-end: auto; }
+  .dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); transition: background 0.2s; }
+  .dots i.on { background: var(--tracer); }
+  .secondary { font: 700 15px var(--font-ui); color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 10px; padding: 11px 16px; cursor: pointer; }
+  .secondary:hover { border-color: var(--muted); }
+  .nav .primary { min-width: 140px; }
+  .row-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+  .row-btns .primary { flex: 1; }
   .primary {
     font: 800 18px var(--font-ui); color: #1b1404; background: var(--tracer);
     border: 0; border-radius: 10px; padding: 12px 18px; cursor: pointer;
@@ -114,13 +158,18 @@
 
   @media (max-width: 480px) {
     .card h1 { font-size: 32px; }
-    .rules li { grid-template-columns: 1fr; gap: 2px; }
+    .ctrl { grid-template-columns: 1fr; gap: 6px; }
+    .goals b { font-size: 22px; }
+    .threat.friend { grid-template-columns: 96px 1fr; }
+    .demo.wide { height: 140px; }
+    .nav .primary { min-width: 0; flex: 1; }
     .stat .val { font-size: 18px; }
     #hud { gap: 14px; }
   }
   @media (prefers-reduced-motion: reduce) {
     #reloadBtn.urgent { animation: none; box-shadow: 0 0 0 4px rgba(255, 200, 87, 0.4); }
     #banner { transition: none; }
+    .mag i { animation: none; background-size: 100% 100%; }
   }
 </style>
 
@@ -141,28 +190,77 @@
 <div id="banner"><div class="t" id="bannerT"></div><div class="s" id="bannerS"></div></div>
 
 <div class="overlay" id="startOv">
-  <div class="card">
-    <h1>Night <span>Intercept</span></h1>
-    <p>Missiles and drones are falling on the city. Your cannon sits in the middle and the magazine holds only 6 shells. Fire, reload, and intercept before they hit.</p>
-    <ul class="rules">
-      <li><b>Click / tap</b><span>Fires a shell in that direction. It keeps flying to the edge of the screen and bursts on the first thing in its path.</span></li>
-      <li><b>R / Space / right-click</b><span>Reload. One shell goes in every 0.4 s, and firing stops the reload.</span></li>
-      <li><b>Chain</b><span>A destroyed threat blows up whatever is next to it. Several kills from one blast multiply the score.</span></li>
-      <li><b>Bonus orbs</b><span>Shoot one to activate it: ∞ unlimited ammo (10 s), slow motion (8 s), or a shield over the city (12 s).</span></li>
-      <li><b>Birds</b><span>Not a threat. Hitting a bird costs 50 points.</span></li>
-    </ul>
-    <div class="legend" aria-label="Threat types">
-      <span><i style="background:#ffb347"></i>Missile</span>
-      <span><i style="background:#ff5a3c"></i>Fast missile (wave 3+)</span>
-      <span><i style="background:#ffe066"></i>Splitter (wave 4+)</span>
-      <span><i style="background:#9aa4c8"></i>Drone (wave 2+)</span>
-      <span><i style="background:#e6ecff"></i>Bird</span>
-      <span><i style="background:#ffe066;box-shadow:0 0 0 2px #7ff0d0"></i>Ammo bonus</span>
-      <span><i style="background:#8ab4ff"></i>Slow-mo bonus</span>
-      <span><i style="background:#9dff8a"></i>Shield bonus</span>
+  <div class="card brief">
+    <div class="brief-top">
+      <span class="step-lbl" id="stepLbl">Briefing 1 / 4</span>
+      <button class="link" id="skipBtn" type="button">Skip to game</button>
     </div>
-    <button class="primary" id="startBtn" type="button">Start game</button>
-    <span class="hint">P or Esc to pause. The city falls when all six buildings are hit.</span>
+
+    <section class="step">
+      <h1>Night <span>Intercept</span></h1>
+      <p class="lead">The city is under attack tonight. You command the last cannon, and every shell counts.</p>
+      <canvas class="demo wide" data-demo="intercept" aria-label="Animation: the cannon shoots down an incoming missile"></canvas>
+      <div class="goals">
+        <div><b>6</b><span>buildings you must protect</span></div>
+        <div><b>6</b><span>shells in your magazine</span></div>
+        <div><b>∞</b><span>waves, each one faster</span></div>
+      </div>
+      <p class="note">Your goal: survive as many waves as you can and score high. When the last building falls, the night is over.</p>
+    </section>
+
+    <section class="step" hidden>
+      <h2>Your cannon</h2>
+      <div class="ctrl">
+        <div class="keys"><kbd>Click</kbd><kbd>Tap</kbd></div>
+        <div><b>Fire</b><span>The shell flies in a straight line through the point you click, all the way to the edge of the screen, and bursts on the first thing it touches. Aim ahead of moving targets.</span></div>
+      </div>
+      <div class="ctrl">
+        <div class="keys"><kbd>R</kbd><kbd>Space</kbd><kbd>Right-click</kbd><kbd>LOAD</kbd></div>
+        <div><b>Reload</b><span>One shell every 0.4 seconds. Firing stops the reload, so pick your moment.</span>
+          <div class="mag" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+      </div>
+      <div class="ctrl">
+        <div class="keys"><kbd>Chain</kbd></div>
+        <div><b>Chain reactions</b><span>Every threat you destroy explodes and can take out its neighbours. The second kill in one blast scores ×1.5, the third ×2, and so on.</span></div>
+      </div>
+      <div class="ctrl">
+        <div class="keys"><kbd>P</kbd><kbd>Esc</kbd></div>
+        <div><b>Pause</b><span>Stops the game any time.</span></div>
+      </div>
+    </section>
+
+    <section class="step" hidden>
+      <h2>Know your threats</h2>
+      <div class="threats">
+        <div class="threat"><canvas class="demo" data-demo="missile"></canvas>
+          <div class="info"><div class="t-head"><b>Missile</b><span class="pts">+100</span></div><span class="tag">From wave 1</span><p>Falls in a straight line toward a building.</p></div></div>
+        <div class="threat"><canvas class="demo" data-demo="drone"></canvas>
+          <div class="info"><div class="t-head"><b>Drone</b><span class="pts">+150</span></div><span class="tag">From wave 2</span><p>Cruises across the sky, then dives onto its target.</p></div></div>
+        <div class="threat"><canvas class="demo" data-demo="fast"></canvas>
+          <div class="info"><div class="t-head"><b>Fast missile</b><span class="pts">+150</span></div><span class="tag">From wave 3</span><p>Almost twice as fast. Lead it more.</p></div></div>
+        <div class="threat"><canvas class="demo" data-demo="mirv"></canvas>
+          <div class="info"><div class="t-head"><b>Splitter</b><span class="pts">+200</span></div><span class="tag">From wave 4</span><p>Breaks into three missiles a third of the way down. Hit it high.</p></div></div>
+        <div class="threat friend"><canvas class="demo" data-demo="bird"></canvas>
+          <div class="info"><div class="t-head"><b>Birds</b><span class="pts bad">−50</span></div><span class="tag bad">Don’t shoot</span><p>Harmless. A shell that hits a bird costs you points, so watch your line of fire.</p></div></div>
+      </div>
+      <p class="note">Some missiles aim at the cannon itself. A hit empties your magazine and jams the cannon for 2 seconds.</p>
+    </section>
+
+    <section class="step" hidden>
+      <h2>Bonus orbs</h2>
+      <p>Now and then a glowing orb streaks across the sky. Shoot it to gain its power and +250 points. They move fast, so be ready.</p>
+      <div class="bonuses">
+        <div class="bonus"><canvas class="demo" data-demo="bonus-ammo"></canvas><div><b>Unlimited ammo</b><span class="tag"> · 10 s</span><p>No reloading, and the cannon fires twice as fast.</p></div></div>
+        <div class="bonus"><canvas class="demo" data-demo="bonus-slow"></canvas><div><b>Slow motion</b><span class="tag"> · 8 s</span><p>Every threat drops to a third of its speed.</p></div></div>
+        <div class="bonus"><canvas class="demo" data-demo="bonus-shield"></canvas><div><b>City shield</b><span class="tag"> · 12 s</span><p>A dome covers the city and stops anything that hits it.</p></div></div>
+      </div>
+    </section>
+
+    <div class="nav">
+      <div class="dots" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i></div>
+      <button class="secondary" id="backBtn" type="button">Back</button>
+      <button class="primary" id="nextBtn" type="button">Next</button>
+    </div>
   </div>
 </div>
 
@@ -183,7 +281,7 @@
       <div><span class="lbl">Accuracy</span><span class="val" id="oAcc">0%</span></div>
     </div>
     <p id="oBest"></p>
-    <button class="primary" id="againBtn" type="button">Play again</button>
+    <div class="row-btns"><button class="primary" id="againBtn" type="button">Play again</button><button class="secondary" id="briefBtn" type="button">How to play</button></div>
   </div>
 </div>
 
@@ -191,7 +289,7 @@
 (() => {
   const $ = (s) => document.querySelector(s);
   const cv = $('#cv');
-  const ctx = cv.getContext('2d');
+  let ctx = cv.getContext('2d');
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const finePointer = matchMedia('(pointer: fine)').matches;
 
@@ -778,11 +876,12 @@
       ctx.beginPath(); ctx.moveTo(pts[i - 1].x, pts[i - 1].y); ctx.lineTo(pts[i].x, pts[i].y); ctx.stroke();
     }
   }
-  function drawEnemies() {
-    for (const e of S.enemies) {
-      if (e.type === 'bird') { drawBird(e); continue; }
-      if (e.type === 'bonus') { drawBonus(e); continue; }
-      if (e.type === 'drone') { drawDrone(e); continue; }
+  function drawEnemies() { for (const e of S.enemies) drawEntity(e); }
+  function drawEntity(e) {
+    {
+      if (e.type === 'bird') { drawBird(e); return; }
+      if (e.type === 'bonus') { drawBonus(e); return; }
+      if (e.type === 'drone') { drawDrone(e); return; }
       const c = COLORS[e.type];
       drawTrail(e.trail, e.x, e.y, c.trail);
       const ang = Math.atan2(e.vy, e.vx);
@@ -1022,6 +1121,118 @@
     ctx.stroke();
   }
 
+  // ---------- briefing demos (mini canvases reuse the game's sprite code) ----------
+  const lin = (ax, ay, bx, by, T) => (s) => ({ x: ax + ((bx - ax) * s) / T, y: ay + ((by - ay) * s) / T, vx: (bx - ax) / T, vy: (by - ay) / T });
+  function trailOf(fn, s, back, from = 0) {
+    const tr = [];
+    for (let q = Math.max(from, s - back); q < s; q += 0.05) { const p = fn(q); tr.push({ x: p.x, y: p.y }); }
+    return tr;
+  }
+  function miniBoom(x, y, r, a) {
+    const gr = ctx.createRadialGradient(x, y, 0, x, y, r);
+    gr.addColorStop(0, `rgba(255,250,225,${0.95 * a})`); gr.addColorStop(0.45, `rgba(255,200,90,${0.75 * a})`); gr.addColorStop(1, 'rgba(255,110,40,0)');
+    ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  }
+  const DEMOS = {
+    missile(w, h, t) {
+      const T = 2.6, s = t % T, f = lin(w * 0.22, -12, w * 0.72, h + 12, T);
+      drawEntity({ type: 'missile', ...f(s), trail: trailOf(f, s, 1.6) });
+    },
+    fast(w, h, t) {
+      const T = 1.3, s = t % T, f = lin(w * 0.8, -12, w * 0.3, h + 12, T);
+      drawEntity({ type: 'fast', ...f(s), trail: trailOf(f, s, 1) });
+    },
+    mirv(w, h, t) {
+      const T = 3.2, s = t % T, ts = 1.3, sx = w * 0.5, sy = h * 0.42;
+      const f = lin(w * 0.5, -12, sx, sy, ts);
+      if (s < ts) { drawEntity({ type: 'mirv', ...f(s), trail: trailOf(f, s, 1.4) }); return; }
+      const q = s - ts;
+      if (q < 0.25) miniBoom(sx, sy, 10 * u, 1 - q / 0.25);
+      for (const ex of [0.12, 0.5, 0.88]) {
+        const g = lin(sx, sy, w * ex, h + 12, T - ts);
+        drawEntity({ type: 'child', ...g(q), trail: trailOf(g, q, 1) });
+      }
+    },
+    drone(w, h, t) {
+      const T = 3.6, s = t % T, tc = 2.1, cy = h * 0.3, dx = w * 0.62;
+      if (s < tc) { const f = lin(-15, cy, dx, cy, tc); drawEntity({ type: 'drone', ...f(s), diving: false, t: s }); }
+      else { const f = lin(dx, cy, dx + 8 * u, h + 15, T - tc); drawEntity({ type: 'drone', ...f(s - tc), diving: true, t: s }); }
+    },
+    bird(w, h, t) {
+      for (let i = 0; i < 3; i++) {
+        const x = ((t * 34 + i * 26) % (w + 60)) - 30;
+        drawBird({ x, y: h * 0.5 + (i - 1) * 9 * u + Math.sin(t * 2.6 + i) * 6 * u, vx: 1, t, ph: i * 1.7 });
+      }
+    },
+    'bonus-ammo'(w, h, t) { drawBonus({ kind: 'ammo', x: w / 2, y: h / 2 + Math.sin(t * 2) * 3, t }); },
+    'bonus-slow'(w, h, t) { drawBonus({ kind: 'slow', x: w / 2, y: h / 2 + Math.sin(t * 2 + 1) * 3, t }); },
+    'bonus-shield'(w, h, t) { drawBonus({ kind: 'shield', x: w / 2, y: h / 2 + Math.sin(t * 2 + 2) * 3, t }); },
+    intercept(w, h, t) {
+      const T = 3.4, s = t % T, gy = h - 26 * u;
+      // ground and city
+      ctx.fillStyle = '#171d36'; ctx.fillRect(0, gy, w, h - gy);
+      ctx.fillStyle = 'rgba(160,175,230,0.25)'; ctx.fillRect(0, gy, w, 1);
+      [0.1, 0.22, 0.34, 0.66, 0.78, 0.9].forEach((fx, i) => {
+        const bw = 22 * u, bh = HEIGHTS[i] * 40 * u, x = fx * w - bw / 2;
+        ctx.fillStyle = '#232a50'; ctx.fillRect(x, gy - bh, bw, bh);
+        ctx.fillStyle = 'rgba(255,207,110,0.8)';
+        for (let yy = gy - bh + 6 * u; yy < gy - 6 * u; yy += 9 * u) { ctx.fillRect(x + 4 * u, yy, 4 * u, 4 * u); if (rand(i * 31 + yy) > 0.4) ctx.fillRect(x + 13 * u, yy, 4 * u, 4 * u); }
+      });
+      // threat and the shot that stops it
+      const M = lin(w * 0.86, -12, w * 0.22, gy, 3.1);
+      const ti = 1.75, tgt = M(ti);
+      const px = w / 2, py = gy - 10 * u;
+      const ang = Math.atan2(tgt.y - py, tgt.x - px), L = 22 * u;
+      const tx = px + Math.cos(ang) * L, ty = py + Math.sin(ang) * L;
+      const tf = ti - Math.hypot(tgt.x - tx, tgt.y - ty) / (330 * u);
+      if (s < tf) {
+        ctx.save(); ctx.setLineDash([3 * u, 6 * u]); ctx.strokeStyle = 'rgba(255,214,140,0.3)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx + Math.cos(ang) * w, ty + Math.sin(ang) * w); ctx.stroke(); ctx.restore();
+      }
+      if (s < ti) drawEntity({ type: 'missile', ...M(s), trail: trailOf(M, s, 1.6) });
+      if (s >= tf && s < ti) {
+        const f = (s - tf) / (ti - tf), sx = tx + (tgt.x - tx) * f, sy = ty + (tgt.y - ty) * f;
+        ctx.strokeStyle = 'rgba(255,240,200,0.9)'; ctx.lineWidth = 2 * u;
+        ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx - Math.cos(ang) * 14 * u, sy - Math.sin(ang) * 14 * u); ctx.stroke();
+      }
+      if (s >= ti && s < ti + 0.8) {
+        const q = (s - ti) / 0.8;
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        miniBoom(tgt.x, tgt.y, 30 * u * Math.min(1, q * 4), 1 - q * q); ctx.restore();
+        ctx.font = `800 ${Math.round(13 * u + 2)}px ${FONT}`; ctx.textAlign = 'center'; ctx.fillStyle = `rgba(255,216,138,${1 - q})`;
+        ctx.fillText('+100', tgt.x, tgt.y - 30 * u - q * 14 * u);
+      }
+      // cannon
+      const rec = s >= tf && s < tf + 0.15 ? 4 * u : 0;
+      ctx.fillStyle = '#2b3360';
+      ctx.beginPath(); ctx.moveTo(px - 30 * u, gy + 1); ctx.lineTo(px - 22 * u, gy - 6 * u); ctx.lineTo(px + 22 * u, gy - 6 * u); ctx.lineTo(px + 30 * u, gy + 1); ctx.closePath(); ctx.fill();
+      ctx.save(); ctx.translate(px, py); ctx.rotate(ang); ctx.fillStyle = '#9aa4c8'; ctx.fillRect(2 * u - rec, -3.5 * u, 22 * u, 7 * u); ctx.restore();
+      ctx.fillStyle = '#4b558c'; ctx.beginPath(); ctx.arc(px, py + 4 * u, 13 * u, Math.PI, 0); ctx.closePath(); ctx.fill();
+      // magazine
+      const left = s >= tf ? 5 : 6;
+      for (let i = 0; i < 6; i++) {
+        const x = px - 27 * u + i * 9.5 * u, y = gy + 8 * u;
+        ctx.fillStyle = i < left ? '#ffc857' : 'rgba(255,200,87,0.2)';
+        roundRect(x, y, 6 * u, 13 * u, 2 * u); ctx.fill();
+      }
+    },
+  };
+  function renderDemos(time) {
+    const main = ctx, mu = u;
+    for (const c of document.querySelectorAll('#startOv .demo')) {
+      const w = c.clientWidth, h = c.clientHeight;
+      if (!w || !h) continue;
+      if (c.width !== Math.round(w * DPR) || c.height !== Math.round(h * DPR)) { c.width = Math.round(w * DPR); c.height = Math.round(h * DPR); }
+      ctx = c.getContext('2d');
+      u = c.dataset.demo === 'intercept' ? Math.min(1.1, h / 150) : h / 82;
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+      ctx.direction = 'ltr';
+      try { DEMOS[c.dataset.demo](w, h, reduceMotion ? 1.2 : time); } catch (e) { /* keep the main game running */ }
+    }
+    ctx = main; u = mu;
+  }
+
   // ---------- HUD ----------
   const fmt = (n) => n.toLocaleString('en-US');
   const hudCache = {};
@@ -1044,6 +1255,7 @@
     last = now;
     if (S.mode !== 'pause') update(dt);
     draw();
+    if (!$('#startOv').hidden) renderDemos(now / 1000);
     hud();
     requestAnimationFrame(frame);
   }
@@ -1063,7 +1275,30 @@
   cv.addEventListener('contextmenu', (ev) => ev.preventDefault());
   $('#reloadBtn').addEventListener('pointerdown', (ev) => { ev.preventDefault(); ev.stopPropagation(); startReload(); });
   $('#reloadBtn').addEventListener('click', (ev) => { if (ev.detail === 0) startReload(); });
-  $('#startBtn').addEventListener('click', startGame);
+  const steps = [...document.querySelectorAll('#startOv .step')];
+  const dots = [...document.querySelectorAll('#startOv .dots i')];
+  let step = 0;
+  function showStep(i) {
+    step = Math.max(0, Math.min(steps.length - 1, i));
+    steps.forEach((el, k) => { el.hidden = k !== step; });
+    dots.forEach((el, k) => el.classList.toggle('on', k === step));
+    $('#stepLbl').textContent = `Briefing ${step + 1} / ${steps.length}`;
+    $('#backBtn').style.visibility = step === 0 ? 'hidden' : 'visible';
+    $('#nextBtn').textContent = step === steps.length - 1 ? 'Start game' : 'Next';
+    $('#skipBtn').hidden = step === steps.length - 1;
+    $('#startOv .card').scrollTop = 0;
+  }
+  function nextStep() { if (step === steps.length - 1) startGame(); else showStep(step + 1); }
+  $('#nextBtn').addEventListener('click', nextStep);
+  $('#backBtn').addEventListener('click', () => showStep(step - 1));
+  $('#skipBtn').addEventListener('click', startGame);
+  $('#briefBtn').addEventListener('click', () => {
+    S = newState();
+    $('#overOv').hidden = true; $('#startOv').hidden = false;
+    document.body.classList.add('menu');
+    showStep(0); $('#nextBtn').focus();
+  });
+  showStep(0);
   $('#againBtn').addEventListener('click', startGame);
   $('#resumeBtn').addEventListener('click', () => setPaused(false));
   $('#pauseBtn').addEventListener('click', (ev) => { ev.currentTarget.blur(); setPaused(S.mode === 'play'); });
@@ -1074,8 +1309,9 @@
       if (S.mode === 'play') { ev.preventDefault(); startReload(); }
     } else if (k === 'p' || k === 'פ' || k === 'escape') {
       if (S.mode === 'play') setPaused(true); else if (S.mode === 'pause') setPaused(false);
-    } else if (k === 'enter' && S.mode === 'menu' && !$('#startOv').hidden) {
-      startGame();
+    } else if (S.mode === 'menu' && !$('#startOv').hidden && (k === 'enter' || k === 'arrowright' || k === 'arrowleft')) {
+      ev.preventDefault();
+      if (k === 'arrowleft') showStep(step - 1); else nextStep();
     }
   });
   document.addEventListener('visibilitychange', () => { if (document.hidden) setPaused(true); });
