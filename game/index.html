@@ -1,0 +1,929 @@
+<meta charset="utf-8">
+<title>יירוט לילה</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;800&display=swap">
+<style>
+  /* Layout: full-screen night sky canvas; HUD strip on top, cannon at bottom centre, overlays centred. Single dark look by choice. */
+  :root {
+    --night: #0a0e1f;
+    --panel: rgba(14, 19, 40, 0.86);
+    --line: rgba(160, 175, 230, 0.22);
+    --ink: #e9ecf8;
+    --muted: #8f98bf;
+    --tracer: #ffc857;
+    --threat: #ff5a3c;
+    --font-ui: "Rubik", "Segoe UI", "Arial Hebrew", system-ui, sans-serif;
+    color-scheme: dark;
+  }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--night);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    overflow: hidden;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #cv { position: fixed; inset: 0; width: 100%; height: 100%; display: block; cursor: none; }
+  body.menu #cv { cursor: default; }
+
+  #hud {
+    position: fixed; top: 0; left: 0; right: 0;
+    display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+    padding-top: calc(10px + env(safe-area-inset-top, 0px));
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    pointer-events: none;
+    direction: rtl;
+  }
+  .stat { display: flex; flex-direction: column; line-height: 1.1; }
+  .stat .lbl { font-size: 11px; letter-spacing: 0.06em; color: var(--muted); }
+  .stat .val { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  #score { color: var(--tracer); }
+  .hud-btns { margin-inline-start: auto; display: flex; gap: 8px; pointer-events: auto; }
+  .chip {
+    font: 600 13px var(--font-ui); color: var(--ink);
+    background: rgba(20, 27, 56, 0.7); border: 1px solid var(--line);
+    border-radius: 999px; padding: 6px 12px; cursor: pointer;
+  }
+  .chip:hover { border-color: var(--tracer); }
+  button:focus-visible { outline: 2px solid var(--tracer); outline-offset: 2px; }
+
+  #reloadBtn {
+    position: fixed;
+    right: max(14px, env(safe-area-inset-right, 0px));
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    width: 64px; height: 64px; border-radius: 50%;
+    background: radial-gradient(circle at 50% 35%, #3a3220, #1a1710);
+    border: 2px solid var(--tracer); color: var(--tracer);
+    font: 800 17px var(--font-ui);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+    cursor: pointer; touch-action: none;
+  }
+  #reloadBtn small { font-size: 10px; font-weight: 600; color: var(--muted); }
+  #reloadBtn.urgent { animation: pulse 0.6s ease-in-out infinite alternate; }
+  #reloadBtn.busy { opacity: 0.6; }
+  @keyframes pulse { from { box-shadow: 0 0 0 0 rgba(255, 200, 87, 0.0); } to { box-shadow: 0 0 0 10px rgba(255, 200, 87, 0.35); } }
+
+  .overlay {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 16px;
+    background: rgba(6, 9, 22, 0.45);
+    direction: rtl;
+  }
+  .card {
+    width: 100%; max-width: 440px; max-height: 100%; overflow-y: auto;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    padding: 24px 22px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .card h1 { margin: 0; font-size: 40px; font-weight: 800; letter-spacing: -0.01em; line-height: 1; text-wrap: balance; }
+  .card h1 span { color: var(--tracer); }
+  .card h2 { margin: 0; font-size: 30px; font-weight: 800; }
+  .card p { margin: 0; color: #c8cee6; line-height: 1.55; font-size: 15px; }
+  .rules { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 14px; line-height: 1.45; }
+  .rules li { display: grid; grid-template-columns: 92px 1fr; gap: 10px; align-items: baseline; }
+  .rules b { color: var(--tracer); font-weight: 600; font-size: 13px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .primary {
+    font: 800 18px var(--font-ui); color: #1b1404; background: var(--tracer);
+    border: 0; border-radius: 10px; padding: 12px 18px; cursor: pointer;
+  }
+  .primary:hover { filter: brightness(1.08); }
+  .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .stats div { background: rgba(255, 255, 255, 0.04); border-radius: 8px; padding: 10px 12px; }
+  .stats .lbl { font-size: 12px; color: var(--muted); display: block; }
+  .stats .val { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .hint { font-size: 12px; color: var(--muted); }
+
+  #banner {
+    position: fixed; left: 0; right: 0; top: 28%; text-align: center; pointer-events: none;
+    opacity: 0; transform: translateY(8px); transition: opacity 0.3s, transform 0.3s; direction: rtl;
+  }
+  #banner.show { opacity: 1; transform: none; }
+  #banner .t { font-size: 44px; font-weight: 800; letter-spacing: 0.02em; text-shadow: 0 2px 18px rgba(0, 0, 0, 0.6); }
+  #banner .s { font-size: 16px; color: var(--tracer); margin-top: 4px; }
+
+  @media (max-width: 480px) {
+    .card h1 { font-size: 32px; }
+    .rules li { grid-template-columns: 1fr; gap: 2px; }
+    .stat .val { font-size: 18px; }
+    #hud { gap: 14px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #reloadBtn.urgent { animation: none; box-shadow: 0 0 0 4px rgba(255, 200, 87, 0.4); }
+    #banner { transition: none; }
+  }
+</style>
+
+<canvas id="cv" aria-label="שדה המשחק"></canvas>
+
+<div id="hud">
+  <div class="stat"><span class="lbl">ניקוד</span><span class="val" id="score">0</span></div>
+  <div class="stat"><span class="lbl">גל</span><span class="val" id="wave">–</span></div>
+  <div class="stat"><span class="lbl">שיא</span><span class="val" id="best">0</span></div>
+  <div class="hud-btns">
+    <button class="chip" id="muteBtn" type="button">צליל: פועל</button>
+    <button class="chip" id="pauseBtn" type="button">השהה</button>
+  </div>
+</div>
+
+<button id="reloadBtn" type="button" aria-label="טעינת התותח"><span>טען</span><small>R</small></button>
+
+<div id="banner"><div class="t" id="bannerT"></div><div class="s" id="bannerS"></div></div>
+
+<div class="overlay" id="startOv">
+  <div class="card">
+    <h1>יירוט <span>לילה</span></h1>
+    <p>טילים ורחפנים יורדים על העיר. התותח שלכם באמצע, והמחסנית מחזיקה רק 6 פגזים. יורים, טוענים, ומספיקים ליירט לפני הפגיעה.</p>
+    <ul class="rules">
+      <li><b>לחיצה / נגיעה</b><span>יורה פגז שמתפוצץ בדיוק בנקודה שבחרתם. כוונו קצת לפני האיום.</span></li>
+      <li><b>R / רווח / קליק ימני</b><span>טעינה. פגז אחד נכנס כל 0.4 שניות, וכל ירייה עוצרת את הטעינה.</span></li>
+      <li><b>שרשרת</b><span>איום שמתפוצץ מפיל את מי שלידו. כמה יירוטים בפיצוץ אחד מכפילים את הניקוד.</span></li>
+      <li><b>ציפורים</b><span>לא איום. פגיעה בציפור עולה 50 נקודות.</span></li>
+    </ul>
+    <div class="legend" aria-label="סוגי איומים">
+      <span><i style="background:#ffb347"></i>טיל</span>
+      <span><i style="background:#ff5a3c"></i>טיל מהיר (מגל 3)</span>
+      <span><i style="background:#ffe066"></i>טיל מתפצל (מגל 4)</span>
+      <span><i style="background:#9aa4c8"></i>רחפן (מגל 2)</span>
+      <span><i style="background:#e6ecff"></i>ציפור</span>
+    </div>
+    <button class="primary" id="startBtn" type="button">התחל לשחק</button>
+    <span class="hint">P או Esc להשהיה. העיר נופלת כשכל ששת הבניינים נפגעו.</span>
+  </div>
+</div>
+
+<div class="overlay" id="pauseOv" hidden>
+  <div class="card">
+    <h2>מושהה</h2>
+    <button class="primary" id="resumeBtn" type="button">המשך</button>
+  </div>
+</div>
+
+<div class="overlay" id="overOv" hidden>
+  <div class="card">
+    <h2 id="overTitle">העיר נפלה</h2>
+    <div class="stats">
+      <div><span class="lbl">ניקוד</span><span class="val" id="oScore">0</span></div>
+      <div><span class="lbl">הגעתם לגל</span><span class="val" id="oWave">0</span></div>
+      <div><span class="lbl">יירוטים</span><span class="val" id="oKills">0</span></div>
+      <div><span class="lbl">דיוק</span><span class="val" id="oAcc">0%</span></div>
+    </div>
+    <p id="oBest"></p>
+    <button class="primary" id="againBtn" type="button">שחקו שוב</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const cv = $('#cv');
+  const ctx = cv.getContext('2d');
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const finePointer = matchMedia('(pointer: fine)').matches;
+
+  const CAP = 6;            // shells per magazine
+  const LOAD_TIME = 0.42;   // seconds per shell
+  const FIRE_CD = 0.16;     // seconds between shots
+  const SLOTS = [0.09, 0.21, 0.33, 0.67, 0.79, 0.91];
+  const HEIGHTS = [0.9, 1.2, 0.75, 1.05, 0.8, 1.15];
+  const PTS = { missile: 100, fast: 150, mirv: 200, child: 75, drone: 150 };
+  const FONT = '"Rubik", "Segoe UI", system-ui, sans-serif';
+
+  let W = 0, H = 0, DPR = 1, u = 1, groundY = 0;
+  let stars = [], skyline = [];
+  let best = 0;
+  try { best = parseInt(localStorage.getItem('yirut-best') || '0', 10) || 0; } catch (e) {}
+
+  function newState() {
+    return {
+      mode: 'menu', score: 0, wave: 0, time: 0,
+      ammo: CAP, reloading: false, reloadT: 0, cd: 0, stun: 0, recoil: 0, emptyFlash: 0,
+      buildings: SLOTS.map((f, i) => ({ f, h: HEIGHTS[i], alive: true, seed: i * 7919 + 13, smokeT: 0 })),
+      shells: [], booms: [], enemies: [], parts: [], texts: [],
+      toSpawn: 0, spawnT: 0, birdT: 1.5, between: false, interT: 0, shake: 0,
+      shots: 0, hits: 0, kills: 0,
+      aimX: 0, aimY: 0,
+    };
+  }
+  let S = newState();
+
+  // ---------- layout ----------
+  function resize() {
+    DPR = Math.min(2, window.devicePixelRatio || 1);
+    W = cv.clientWidth; H = cv.clientHeight;
+    cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+    u = Math.max(0.62, Math.min(H / 720, W / 520, 1.4));
+    groundY = H - (finePointer ? 74 : 92) * u;
+    if (!S.aimX) { S.aimX = W / 2; S.aimY = H * 0.4; }
+    stars = [];
+    const n = Math.round((W * H) / 5200);
+    for (let i = 0; i < n; i++) stars.push({ x: Math.random() * W, y: Math.random() * groundY * 0.85, r: Math.random() * 1.3 + 0.2, p: Math.random() * 6 });
+    skyline = [];
+    let x = 0;
+    while (x < W) { const w = (18 + Math.random() * 40) * u; skyline.push({ x, w, h: (20 + Math.random() * 55) * u }); x += w; }
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  const pivot = () => ({ x: W / 2, y: groundY - 16 * u });
+  function bRect(b) { const w = 44 * u, h = b.h * 72 * u; return { x: b.f * W - w / 2, y: groundY - h, w, h }; }
+  const aliveB = () => S.buildings.filter((b) => b.alive);
+
+  // ---------- audio ----------
+  let actx = null, muted = false, noiseBuf = null;
+  function ensureAudio() {
+    if (!actx) {
+      try {
+        actx = new (window.AudioContext || window.webkitAudioContext)();
+        noiseBuf = actx.createBuffer(1, actx.sampleRate * 1.5, actx.sampleRate);
+        const d = noiseBuf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      } catch (e) { actx = null; }
+    }
+    if (actx && actx.state === 'suspended') actx.resume();
+  }
+  function noise(dur, f0, f1, gain, type = 'lowpass') {
+    if (!actx || muted) return;
+    const t = actx.currentTime;
+    const src = actx.createBufferSource(); src.buffer = noiseBuf;
+    const flt = actx.createBiquadFilter(); flt.type = type;
+    flt.frequency.setValueAtTime(f0, t); flt.frequency.exponentialRampToValueAtTime(Math.max(30, f1), t + dur);
+    const g = actx.createGain(); g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    src.connect(flt).connect(g).connect(actx.destination);
+    src.start(t); src.stop(t + dur + 0.05);
+  }
+  function tone(f0, f1, dur, gain, type = 'square') {
+    if (!actx || muted) return;
+    const t = actx.currentTime;
+    const o = actx.createOscillator(); o.type = type;
+    o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+    const g = actx.createGain(); g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(g).connect(actx.destination);
+    o.start(t); o.stop(t + dur + 0.05);
+  }
+  const sfx = {
+    shot() { noise(0.14, 2400, 400, 0.35, 'bandpass'); tone(180, 60, 0.12, 0.18); },
+    boom() { noise(0.5, 900, 80, 0.4); },
+    load() { tone(1400, 900, 0.035, 0.08, 'triangle'); noise(0.04, 3000, 2000, 0.12, 'highpass'); },
+    full() { tone(700, 1400, 0.09, 0.08, 'triangle'); },
+    empty() { tone(260, 200, 0.06, 0.12, 'square'); },
+    impact() { noise(1.0, 500, 40, 0.6); tone(90, 30, 0.6, 0.3, 'sine'); },
+    bird() { tone(1800, 2600, 0.07, 0.07, 'sine'); setTimeout(() => tone(2000, 1500, 0.08, 0.06, 'sine'), 80); },
+    wave() { tone(440, 440, 0.12, 0.06, 'triangle'); setTimeout(() => tone(660, 660, 0.18, 0.06, 'triangle'), 130); },
+  };
+
+  // ---------- spawning ----------
+  function pickTarget(allowCannon) {
+    const a = aliveB();
+    if (allowCannon && (Math.random() < 0.1 || !a.length)) return { cannon: true, x: W / 2, y: groundY - 6 * u };
+    if (!a.length) return { cannon: true, x: W / 2, y: groundY - 6 * u };
+    const b = a[(Math.random() * a.length) | 0];
+    return { b, x: b.f * W + (Math.random() - 0.5) * 22 * u, y: groundY - 4 * u };
+  }
+  const baseSpeed = () => Math.min(115, 36 + S.wave * 5.5) * u;
+
+  function pickType(n) {
+    const r = Math.random();
+    if (n >= 4 && r < 0.14) return 'mirv';
+    if (n >= 3 && r < 0.34) return 'fast';
+    if (n >= 2 && r < 0.5) return 'drone';
+    return 'missile';
+  }
+  function launch(type, sx, sy, tgt, speed, trail) {
+    const dx = tgt.x - sx, dy = tgt.y - sy, d = Math.hypot(dx, dy) || 1;
+    S.enemies.push({ type, x: sx, y: sy, vx: (dx / d) * speed, vy: (dy / d) * speed, tgt, trail: trail || [], trailT: 0, r: (type === 'mirv' ? 8 : 6) * u, t: 0 });
+  }
+  function spawnEnemy() {
+    const type = pickType(S.wave);
+    if (type === 'drone') {
+      const left = Math.random() < 0.5;
+      S.enemies.push({
+        type, x: left ? -30 * u : W + 30 * u, y: H * (0.12 + Math.random() * 0.2),
+        vx: (left ? 1 : -1) * (55 + S.wave * 4) * u, vy: 0, tgt: pickTarget(false),
+        diving: false, r: 10 * u, t: Math.random() * 3, trail: [], trailT: 0,
+      });
+      return;
+    }
+    let sp = baseSpeed();
+    if (type === 'fast') sp *= 1.7;
+    if (type === 'mirv') sp *= 0.85;
+    launch(type, W * (0.04 + Math.random() * 0.92), -15 * u, pickTarget(S.wave >= 2), sp);
+  }
+  function spawnBirds() {
+    const left = Math.random() < 0.5;
+    const count = Math.random() < 0.4 ? 3 + ((Math.random() * 3) | 0) : 1;
+    const y0 = H * (0.18 + Math.random() * 0.38);
+    const sp = (70 + Math.random() * 50) * u;
+    for (let i = 0; i < count; i++) {
+      S.enemies.push({
+        type: 'bird', x: (left ? -20 - i * 22 : W + 20 + i * 22) * 1 - (left ? 0 : 0),
+        baseY: y0 + (i % 2 ? 14 : -10) * u * Math.min(i, 2), y: y0,
+        vx: (left ? 1 : -1) * sp, vy: 0, r: 8 * u, t: Math.random() * 6, ph: Math.random() * 6,
+      });
+    }
+  }
+
+  // ---------- effects ----------
+  function addText(x, y, txt, color, size = 15) { S.texts.push({ x, y, txt, color, size, t: 0, life: 1.2 }); }
+  function burst(x, y, n, colors, speed, life, grav = 0, size = 2) {
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, s = (0.3 + Math.random()) * speed * u;
+      S.parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: life * (0.6 + Math.random() * 0.6), t: 0, color: colors[(Math.random() * colors.length) | 0], size: size * u * (0.6 + Math.random()), grav: grav * u });
+    }
+  }
+  function addBoom(x, y, friendly, max, chain) {
+    S.booms.push({ x, y, friendly, max, chain, t: 0, life: friendly ? 0.75 : 0.9 });
+  }
+  function boomR(b) {
+    const t = b.t;
+    if (t < 0.18) return b.max * (1 - Math.pow(1 - t / 0.18, 3));
+    if (t < 0.45) return b.max;
+    return Math.max(0, b.max * (1 - (t - 0.45) / (b.life - 0.45)));
+  }
+
+  // ---------- actions ----------
+  function fire(tx, ty) {
+    if (S.mode !== 'play') return;
+    ensureAudio();
+    S.aimX = tx; S.aimY = ty;
+    if (S.stun > 0) { sfx.empty(); return; }
+    if (S.ammo <= 0) { sfx.empty(); S.emptyFlash = 1; return; }
+    if (S.cd > 0) return;
+    ty = Math.min(ty, groundY - 26 * u);
+    const p = pivot();
+    let ang = Math.atan2(ty - p.y, tx - p.x);
+    ang = Math.max(-Math.PI + 0.12, Math.min(-0.12, ang));
+    const L = 40 * u;
+    const sx = p.x + Math.cos(ang) * L, sy = p.y + Math.sin(ang) * L;
+    const dx = tx - sx, dy = ty - sy, d = Math.hypot(dx, dy) || 1;
+    const sp = 900 * u;
+    S.shells.push({ x: sx, y: sy, tx, ty, vx: (dx / d) * sp, vy: (dy / d) * sp, rem: d, chain: { kills: 0, counted: false } });
+    S.ammo--; S.reloading = false; S.reloadT = 0; S.cd = FIRE_CD; S.recoil = 1; S.shots++;
+    burst(sx, sy, 8, ['#fff1c2', '#ffc857', '#ff9a3c'], 120, 0.25);
+    sfx.shot();
+  }
+  function startReload() {
+    if (S.mode !== 'play') return;
+    ensureAudio();
+    if (S.ammo >= CAP || S.stun > 0 || S.reloading) return;
+    S.reloading = true; S.reloadT = 0;
+  }
+  function kill(e, chain) {
+    e.dead = true;
+    if (e.type === 'bird') {
+      S.score = Math.max(0, S.score - 50);
+      addText(e.x, e.y - 10 * u, 'ציפור! −50', '#ff8a7a', 15);
+      burst(e.x, e.y, 14, ['#ffffff', '#dfe6ff', '#c9d2f0'], 70, 1.1, 40, 2.2);
+      sfx.bird();
+      return;
+    }
+    chain.kills++;
+    if (!chain.counted) { chain.counted = true; S.hits++; }
+    S.kills++;
+    const mult = 1 + (chain.kills - 1) * 0.5;
+    const pts = Math.round(PTS[e.type] * mult);
+    S.score += pts;
+    addText(e.x, e.y - 12 * u, chain.kills > 1 ? `+${pts} שרשרת ×${chain.kills}` : `+${pts}`, chain.kills > 1 ? '#7ff0d0' : '#ffd88a', chain.kills > 1 ? 16 : 14);
+    addBoom(e.x, e.y, true, (e.type === 'mirv' ? 38 : 30) * u, chain);
+    burst(e.x, e.y, 14, ['#ffe9b0', '#ffb347', '#ff6a3c', '#ffffff'], 160, 0.6, 60);
+    sfx.boom();
+  }
+  function impact(e) {
+    addBoom(e.x, e.tgt.y, false, 40 * u, null);
+    burst(e.x, e.tgt.y, 24, ['#ff5a3c', '#ff9a3c', '#ffd27a', '#5a5f78'], 200, 1.0, 220, 2.6);
+    S.shake = Math.min(1, S.shake + 0.8);
+    sfx.impact();
+    if (e.tgt.cannon) {
+      S.ammo = 0; S.reloading = false; S.reloadT = 0; S.stun = 1.8;
+      addText(W / 2, groundY - 70 * u, 'התותח נפגע! המחסנית התרוקנה', '#ff8a7a', 16);
+      return;
+    }
+    const b = e.tgt.b;
+    if (b && b.alive) {
+      b.alive = false;
+      const r = bRect(b);
+      burst(r.x + r.w / 2, r.y + r.h / 2, 30, ['#2a3155', '#3a4270', '#ffb347', '#6b6f88'], 160, 1.4, 260, 3.2);
+      addText(r.x + r.w / 2, r.y - 16 * u, 'בניין נפגע', '#ff8a7a', 15);
+      if (!aliveB().length) gameOver();
+    }
+  }
+
+  // ---------- waves ----------
+  function startGame() {
+    const keepAim = { x: S.aimX, y: S.aimY };
+    S = newState();
+    S.aimX = keepAim.x; S.aimY = keepAim.y;
+    S.mode = 'play';
+    document.body.classList.remove('menu');
+    $('#startOv').hidden = true; $('#overOv').hidden = true; $('#pauseOv').hidden = true;
+    ensureAudio();
+    startWave();
+  }
+  function startWave() {
+    S.wave++;
+    S.toSpawn = 6 + S.wave * 3;
+    S.spawnT = 1.4;
+    S.between = false;
+    const tips = {
+      1: 'יורים במקום שהטיל יגיע אליו, לא במקום שבו הוא עכשיו',
+      2: 'רחפנים טסים לרוחב וצוללים מעל המטרה',
+      3: 'טילים מהירים בדרך',
+      4: 'טיל צהוב מתפצל לשלושה. יירטו אותו גבוה',
+    };
+    banner(`גל ${S.wave}`, tips[S.wave] || `${S.toSpawn} איומים בדרך`);
+    sfx.wave();
+  }
+  function waveClear() {
+    S.between = true; S.interT = 3.2;
+    const alive = aliveB().length;
+    const bonus = alive * 100 + S.ammo * 10;
+    S.score += bonus;
+    let sub = `בונוס עיר +${bonus}`;
+    if (S.wave % 2 === 0) {
+      const dead = S.buildings.filter((b) => !b.alive);
+      if (dead.length) { dead[0].alive = true; sub += ' · בניין אחד שוקם'; }
+    }
+    banner('הגל נבלם', sub);
+  }
+  function gameOver() {
+    S.mode = 'over';
+    S.reloading = false;
+    const isBest = S.score > best;
+    if (isBest) { best = S.score; try { localStorage.setItem('yirut-best', String(best)); } catch (e) {} }
+    setTimeout(() => {
+      if (S.mode !== 'over') return;
+      $('#oScore').textContent = fmt(S.score);
+      $('#oWave').textContent = S.wave;
+      $('#oKills').textContent = S.kills;
+      $('#oAcc').textContent = S.shots ? Math.round((S.hits / S.shots) * 100) + '%' : '–';
+      $('#oBest').textContent = isBest ? 'שיא חדש!' : `השיא שלכם: ${fmt(best)}`;
+      $('#overOv').hidden = false;
+      document.body.classList.add('menu');
+      $('#againBtn').focus();
+    }, 1400);
+  }
+  let bannerTimer = 0;
+  function banner(t, s) {
+    $('#bannerT').textContent = t; $('#bannerS').textContent = s || '';
+    const el = $('#banner'); el.classList.add('show');
+    clearTimeout(bannerTimer); bannerTimer = setTimeout(() => el.classList.remove('show'), 2400);
+  }
+  function setPaused(p) {
+    if (p && S.mode === 'play') { S.mode = 'pause'; $('#pauseOv').hidden = false; document.body.classList.add('menu'); $('#resumeBtn').focus(); }
+    else if (!p && S.mode === 'pause') { S.mode = 'play'; $('#pauseOv').hidden = true; document.body.classList.remove('menu'); }
+  }
+
+  // ---------- update ----------
+  function update(dt) {
+    S.time += dt;
+    const playing = S.mode === 'play';
+
+    if (playing) {
+      S.cd = Math.max(0, S.cd - dt);
+      if (S.stun > 0) { S.stun -= dt; if (Math.random() < 0.4) burst(W / 2, groundY - 18 * u, 1, ['#ffe066', '#ffffff'], 140, 0.3); }
+      if (S.reloading) {
+        S.reloadT += dt;
+        if (S.reloadT >= LOAD_TIME) {
+          S.reloadT -= LOAD_TIME; S.ammo++;
+          if (S.ammo >= CAP) { S.ammo = CAP; S.reloading = false; S.reloadT = 0; sfx.full(); } else sfx.load();
+        }
+      }
+      // spawning
+      if (!S.between) {
+        if (S.toSpawn > 0) {
+          S.spawnT -= dt;
+          if (S.spawnT <= 0) {
+            spawnEnemy(); S.toSpawn--;
+            if (S.wave >= 3 && S.toSpawn > 0 && Math.random() < 0.22) { spawnEnemy(); S.toSpawn--; }
+            const interval = Math.max(0.55, 2.1 - S.wave * 0.14);
+            S.spawnT = interval * (0.6 + Math.random() * 0.8);
+          }
+        } else if (!S.enemies.some((e) => e.type !== 'bird' && !e.dead)) {
+          waveClear();
+        }
+      } else {
+        S.interT -= dt;
+        if (S.interT <= 0) startWave();
+      }
+    }
+    S.recoil = Math.max(0, S.recoil - dt * 6);
+    S.emptyFlash = Math.max(0, S.emptyFlash - dt * 2);
+    S.shake = Math.max(0, S.shake - dt * 2.2);
+
+    if (S.mode === 'menu' || playing) {
+      S.birdT -= dt;
+      if (S.birdT <= 0) { spawnBirds(); S.birdT = 4 + Math.random() * 5; }
+    }
+
+    // shells
+    for (const s of S.shells) {
+      const step = Math.hypot(s.vx, s.vy) * dt;
+      if (step >= s.rem) { s.done = true; addBoom(s.tx, s.ty, true, 46 * u, s.chain); sfx.boom(); }
+      else { s.x += s.vx * dt; s.y += s.vy * dt; s.rem -= step; }
+    }
+    S.shells = S.shells.filter((s) => !s.done);
+
+    // enemies
+    for (const e of S.enemies) {
+      if (e.dead) continue;
+      e.t += dt;
+      if (e.type === 'bird') {
+        e.x += e.vx * dt;
+        e.y = e.baseY + Math.sin(e.t * 2.6 + e.ph) * 12 * u;
+        if (e.x < -80 || e.x > W + 80) e.gone = true;
+        continue;
+      }
+      if (e.type === 'drone' && !e.diving) {
+        e.x += e.vx * dt;
+        if ((e.vx > 0 && e.x >= e.tgt.x) || (e.vx < 0 && e.x <= e.tgt.x)) {
+          e.diving = true;
+          if (e.tgt.b && !e.tgt.b.alive) e.tgt = pickTarget(false);
+          const sp = baseSpeed() * 1.5, dx = e.tgt.x - e.x, dy = e.tgt.y - e.y, d = Math.hypot(dx, dy) || 1;
+          e.vx = (dx / d) * sp; e.vy = (dy / d) * sp;
+        }
+        continue;
+      }
+      e.x += e.vx * dt; e.y += e.vy * dt;
+      e.trailT -= dt;
+      if (e.trailT <= 0) { e.trail.push({ x: e.x, y: e.y }); if (e.trail.length > 70) e.trail.shift(); e.trailT = 0.04; }
+      if (e.type === 'mirv' && e.y > H * 0.33) {
+        e.dead = true;
+        burst(e.x, e.y, 12, ['#ffe066', '#ffffff'], 120, 0.4);
+        const sp = Math.hypot(e.vx, e.vy) * 1.2;
+        for (let i = 0; i < 3; i++) launch('child', e.x, e.y, pickTarget(false), sp, e.trail.slice(-20));
+        continue;
+      }
+      if (e.y >= e.tgt.y) { e.dead = true; if (S.mode === 'play') impact(e); }
+    }
+
+    // explosions
+    for (const b of S.booms) {
+      b.t += dt;
+      if (!b.friendly) continue;
+      const r = boomR(b);
+      if (r < 2) continue;
+      for (const e of S.enemies) {
+        if (e.dead || e.gone) continue;
+        if (Math.hypot(e.x - b.x, e.y - b.y) < r + e.r) kill(e, b.chain);
+      }
+    }
+    S.booms = S.booms.filter((b) => b.t < b.life);
+    S.enemies = S.enemies.filter((e) => !e.dead && !e.gone);
+
+    // smoke from ruins
+    for (const b of S.buildings) {
+      if (b.alive) continue;
+      b.smokeT -= dt;
+      if (b.smokeT <= 0) {
+        b.smokeT = 0.12 + Math.random() * 0.1;
+        S.parts.push({ x: b.f * W + (Math.random() - 0.5) * 30 * u, y: groundY - 8 * u, vx: (Math.random() - 0.3) * 12 * u, vy: -(25 + Math.random() * 20) * u, life: 2.4, t: 0, color: 'smoke', size: (5 + Math.random() * 5) * u, grav: 0 });
+      }
+    }
+    for (const p of S.parts) { p.t += dt; p.vy += p.grav * dt; p.x += p.vx * dt; p.y += p.vy * dt; if (p.color !== 'smoke') { p.vx *= 0.985; } }
+    S.parts = S.parts.filter((p) => p.t < p.life && p.y < H + 20);
+    if (S.parts.length > 900) S.parts.splice(0, S.parts.length - 900);
+    for (const t of S.texts) { t.t += dt; t.y -= 28 * u * dt; }
+    S.texts = S.texts.filter((t) => t.t < t.life);
+  }
+
+  // ---------- draw ----------
+  function draw() {
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.direction = 'ltr';
+    // sky
+    const g = ctx.createLinearGradient(0, 0, 0, groundY);
+    g.addColorStop(0, '#070a19'); g.addColorStop(0.65, '#121a3a'); g.addColorStop(1, '#2a2348');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+    ctx.save();
+    if (S.shake > 0 && !reduceMotion) ctx.translate((Math.random() - 0.5) * S.shake * 10 * u, (Math.random() - 0.5) * S.shake * 10 * u);
+
+    for (const s of stars) {
+      ctx.globalAlpha = 0.35 + 0.35 * Math.sin(S.time * 1.3 + s.p);
+      ctx.fillStyle = '#dfe6ff'; ctx.fillRect(s.x, s.y, s.r, s.r);
+    }
+    ctx.globalAlpha = 1;
+    // moon
+    const mx = W * 0.82, my = H * 0.16, mr = 26 * u;
+    const mg = ctx.createRadialGradient(mx, my, mr * 0.2, mx, my, mr * 3);
+    mg.addColorStop(0, 'rgba(255,236,190,0.18)'); mg.addColorStop(1, 'rgba(255,236,190,0)');
+    ctx.fillStyle = mg; ctx.fillRect(mx - mr * 3, my - mr * 3, mr * 6, mr * 6);
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.arc(mx + mr * 0.45, my - mr * 0.2, mr * 0.92, 0, Math.PI * 2, true); ctx.clip('evenodd');
+    ctx.fillStyle = '#f3e6c4'; ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
+    // distant skyline
+    ctx.fillStyle = '#1a1d3c';
+    for (const s of skyline) ctx.fillRect(s.x, groundY - s.h, s.w - 2 * u, s.h);
+
+    // ground
+    const gg = ctx.createLinearGradient(0, groundY, 0, H);
+    gg.addColorStop(0, '#171d36'); gg.addColorStop(1, '#0a0d1c');
+    ctx.fillStyle = gg; ctx.fillRect(-20, groundY, W + 40, H - groundY + 20);
+    ctx.fillStyle = 'rgba(160,175,230,0.25)'; ctx.fillRect(-20, groundY, W + 40, 1);
+
+    drawBuildings();
+    drawEnemies();
+    drawShells();
+    drawBooms();
+    drawParts();
+    drawCannon();
+    drawTexts();
+    ctx.restore();
+    drawAmmo();
+    drawCrosshair();
+  }
+
+  function rand(seed) { const x = Math.sin(seed) * 43758.5453; return x - Math.floor(x); }
+  function drawBuildings() {
+    for (const b of S.buildings) {
+      const r = bRect(b);
+      if (b.alive) {
+        ctx.fillStyle = '#232a50'; ctx.fillRect(r.x, r.y, r.w, r.h);
+        ctx.fillStyle = '#2e3766'; ctx.fillRect(r.x, r.y, r.w, 3 * u);
+        // antenna
+        ctx.fillStyle = '#3a4373'; ctx.fillRect(r.x + r.w * 0.7, r.y - 10 * u, 2 * u, 10 * u);
+        if (Math.sin(S.time * 3 + b.seed) > 0.6) { ctx.fillStyle = '#ff5a3c'; ctx.fillRect(r.x + r.w * 0.7 - 1 * u, r.y - 12 * u, 4 * u, 3 * u); }
+        // windows
+        const cols = 3, rows = Math.floor(r.h / (12 * u));
+        const ww = 6 * u, wh = 6 * u, gx = (r.w - cols * ww) / (cols + 1);
+        for (let row = 0; row < rows; row++) for (let c = 0; c < cols; c++) {
+          const lit = rand(b.seed + row * 13 + c * 7) > 0.42;
+          ctx.fillStyle = lit ? 'rgba(255,207,110,0.85)' : 'rgba(80,90,140,0.5)';
+          ctx.fillRect(r.x + gx + c * (ww + gx), r.y + 8 * u + row * 12 * u, ww, wh);
+        }
+      } else {
+        ctx.fillStyle = '#1b2042';
+        ctx.beginPath();
+        ctx.moveTo(r.x - 4 * u, groundY);
+        ctx.lineTo(r.x + r.w * 0.15, groundY - 14 * u);
+        ctx.lineTo(r.x + r.w * 0.35, groundY - 8 * u);
+        ctx.lineTo(r.x + r.w * 0.55, groundY - 22 * u);
+        ctx.lineTo(r.x + r.w * 0.8, groundY - 10 * u);
+        ctx.lineTo(r.x + r.w + 4 * u, groundY);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = `rgba(255,120,50,${0.45 + 0.35 * Math.sin(S.time * 6 + b.seed)})`;
+        ctx.fillRect(r.x + r.w * 0.3, groundY - 6 * u, 3 * u, 3 * u);
+        ctx.fillRect(r.x + r.w * 0.62, groundY - 9 * u, 3 * u, 3 * u);
+      }
+    }
+  }
+
+  const COLORS = {
+    missile: { head: '#ffb347', trail: '255,179,71' },
+    child: { head: '#ffd27a', trail: '255,210,122' },
+    fast: { head: '#ff5a3c', trail: '255,90,60' },
+    mirv: { head: '#ffe066', trail: '255,224,102' },
+  };
+  function drawTrail(tr, x, y, rgb) {
+    if (!tr.length) return;
+    ctx.lineWidth = 2 * u; ctx.lineCap = 'round';
+    const pts = tr.concat([{ x, y }]);
+    for (let i = 1; i < pts.length; i++) {
+      ctx.strokeStyle = `rgba(${rgb},${(i / pts.length) * 0.55})`;
+      ctx.beginPath(); ctx.moveTo(pts[i - 1].x, pts[i - 1].y); ctx.lineTo(pts[i].x, pts[i].y); ctx.stroke();
+    }
+  }
+  function drawEnemies() {
+    for (const e of S.enemies) {
+      if (e.type === 'bird') { drawBird(e); continue; }
+      if (e.type === 'drone') { drawDrone(e); continue; }
+      const c = COLORS[e.type];
+      drawTrail(e.trail, e.x, e.y, c.trail);
+      const ang = Math.atan2(e.vy, e.vx);
+      const len = (e.type === 'mirv' ? 20 : 14) * u, wid = (e.type === 'mirv' ? 6 : 4) * u;
+      // glow
+      const gl = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, 14 * u);
+      gl.addColorStop(0, `rgba(${c.trail},0.55)`); gl.addColorStop(1, `rgba(${c.trail},0)`);
+      ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(e.x, e.y, 14 * u, 0, Math.PI * 2); ctx.fill();
+      ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(ang);
+      ctx.fillStyle = '#c9cfe6';
+      ctx.fillRect(-len, -wid / 2, len, wid);
+      ctx.fillStyle = c.head;
+      ctx.beginPath(); ctx.moveTo(0, -wid / 2); ctx.lineTo(wid * 1.4, 0); ctx.lineTo(0, wid / 2); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#8a92b5';
+      ctx.beginPath(); ctx.moveTo(-len, -wid / 2); ctx.lineTo(-len - 3 * u, -wid * 1.3); ctx.lineTo(-len + 4 * u, -wid / 2); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-len, wid / 2); ctx.lineTo(-len - 3 * u, wid * 1.3); ctx.lineTo(-len + 4 * u, wid / 2); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#fff3c8'; ctx.beginPath(); ctx.arc(-len - 2 * u, 0, 2.2 * u, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+  }
+  function drawDrone(e) {
+    const ang = e.diving ? Math.atan2(e.vy, e.vx) : (e.vx > 0 ? 0 : Math.PI);
+    ctx.save(); ctx.translate(e.x, e.y + (e.diving ? 0 : Math.sin(e.t * 3) * 2 * u)); ctx.rotate(ang);
+    ctx.fillStyle = '#9aa4c8';
+    ctx.beginPath(); ctx.moveTo(12 * u, 0); ctx.lineTo(-8 * u, -12 * u); ctx.lineTo(-4 * u, 0); ctx.lineTo(-8 * u, 12 * u); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#6d77a0'; ctx.fillRect(-10 * u, -2 * u, 18 * u, 4 * u);
+    ctx.restore();
+    if (Math.sin(e.t * 9) > 0) { ctx.fillStyle = '#ff3b30'; ctx.beginPath(); ctx.arc(e.x, e.y, 2.2 * u, 0, Math.PI * 2); ctx.fill(); }
+  }
+  function drawBird(e) {
+    const flap = Math.sin(e.t * 11 + e.ph);
+    const dir = e.vx > 0 ? 1 : -1;
+    ctx.save(); ctx.translate(e.x, e.y); ctx.scale(dir, 1);
+    ctx.strokeStyle = '#e6ecff'; ctx.lineWidth = 2 * u; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-10 * u, -flap * 7 * u);
+    ctx.quadraticCurveTo(-5 * u, -2 * u - flap * 2 * u, 0, 1 * u);
+    ctx.quadraticCurveTo(5 * u, -2 * u - flap * 2 * u, 10 * u, -flap * 7 * u);
+    ctx.stroke();
+    ctx.fillStyle = '#e6ecff'; ctx.beginPath(); ctx.arc(1.5 * u, 1 * u, 1.6 * u, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+  function drawShells() {
+    for (const s of S.shells) {
+      // target marker
+      ctx.strokeStyle = 'rgba(255,200,87,0.7)'; ctx.lineWidth = 1.5 * u;
+      const k = 5 * u;
+      ctx.beginPath(); ctx.moveTo(s.tx - k, s.ty - k); ctx.lineTo(s.tx + k, s.ty + k); ctx.moveTo(s.tx + k, s.ty - k); ctx.lineTo(s.tx - k, s.ty + k); ctx.stroke();
+      const sp = Math.hypot(s.vx, s.vy);
+      ctx.strokeStyle = 'rgba(255,240,200,0.9)'; ctx.lineWidth = 2.4 * u;
+      ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - (s.vx / sp) * 16 * u, s.y - (s.vy / sp) * 16 * u); ctx.stroke();
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(s.x, s.y, 2.4 * u, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  function drawBooms() {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (const b of S.booms) {
+      const r = boomR(b);
+      if (r < 1) continue;
+      const gr = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, r);
+      if (b.friendly) {
+        gr.addColorStop(0, 'rgba(255,250,225,0.95)'); gr.addColorStop(0.45, 'rgba(255,200,90,0.75)'); gr.addColorStop(1, 'rgba(255,110,40,0)');
+      } else {
+        gr.addColorStop(0, 'rgba(255,230,200,0.9)'); gr.addColorStop(0.4, 'rgba(255,90,50,0.8)'); gr.addColorStop(1, 'rgba(160,30,20,0)');
+      }
+      ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(b.x, b.y, r, 0, Math.PI * 2); ctx.fill();
+      if (b.friendly) {
+        ctx.strokeStyle = `rgba(255,220,140,${0.5 * (1 - b.t / b.life)})`; ctx.lineWidth = 1.5 * u;
+        ctx.beginPath(); ctx.arc(b.x, b.y, r * 1.05, 0, Math.PI * 2); ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+  function drawParts() {
+    for (const p of S.parts) {
+      const a = 1 - p.t / p.life;
+      if (p.color === 'smoke') {
+        ctx.fillStyle = `rgba(70,74,100,${0.35 * a})`;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (1 + p.t), 0, Math.PI * 2); ctx.fill();
+      } else {
+        ctx.globalAlpha = a; ctx.fillStyle = p.color; ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size); ctx.globalAlpha = 1;
+      }
+    }
+  }
+  function drawCannon() {
+    const p = pivot();
+    let ang = Math.atan2(S.aimY - p.y, S.aimX - p.x);
+    ang = Math.max(-Math.PI + 0.12, Math.min(-0.12, ang));
+    if (S.mode === 'menu') ang = -Math.PI / 2 + Math.sin(S.time * 0.6) * 0.5;
+    // platform
+    ctx.fillStyle = '#2b3360';
+    ctx.beginPath(); ctx.moveTo(p.x - 52 * u, groundY + 1); ctx.lineTo(p.x - 38 * u, groundY - 10 * u); ctx.lineTo(p.x + 38 * u, groundY - 10 * u); ctx.lineTo(p.x + 52 * u, groundY + 1); ctx.closePath(); ctx.fill();
+    // barrel
+    const stunned = S.stun > 0 && Math.sin(S.time * 30) > 0;
+    ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(ang);
+    const back = S.recoil * 7 * u;
+    const bg = ctx.createLinearGradient(0, -6 * u, 0, 6 * u);
+    bg.addColorStop(0, '#c6cfee'); bg.addColorStop(0.5, '#8d97bf'); bg.addColorStop(1, '#5b6490');
+    ctx.fillStyle = stunned ? '#ff6a5a' : bg;
+    ctx.fillRect(4 * u - back, -5.5 * u, 36 * u, 11 * u);
+    ctx.fillStyle = '#4a5280'; ctx.fillRect(36 * u - back, -7 * u, 6 * u, 14 * u);
+    ctx.restore();
+    // dome
+    const dg = ctx.createRadialGradient(p.x - 6 * u, p.y - 8 * u, 2 * u, p.x, p.y, 26 * u);
+    dg.addColorStop(0, '#6c77ad'); dg.addColorStop(1, '#2f3768');
+    ctx.fillStyle = dg;
+    ctx.beginPath(); ctx.arc(p.x, p.y + 6 * u, 22 * u, Math.PI, 0); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = S.ammo > 0 && S.stun <= 0 ? '#ffc857' : '#ff5a3c';
+    ctx.beginPath(); ctx.arc(p.x, p.y - 4 * u, 3 * u, 0, Math.PI * 2); ctx.fill();
+  }
+  function drawAmmo() {
+    if (S.mode === 'menu') return;
+    const cx = W / 2, y = groundY + 18 * u, sw = 9 * u, sh = 20 * u, gap = 6 * u;
+    const total = CAP * sw + (CAP - 1) * gap;
+    let x0 = cx - total / 2;
+    for (let i = 0; i < CAP; i++) {
+      const x = x0 + i * (sw + gap);
+      ctx.strokeStyle = 'rgba(255,200,87,0.45)'; ctx.lineWidth = 1.2 * u;
+      roundRect(x, y, sw, sh, 3 * u); ctx.stroke();
+      if (i < S.ammo) {
+        ctx.fillStyle = '#ffc857'; roundRect(x, y, sw, sh, 3 * u); ctx.fill();
+        ctx.fillStyle = '#b07a1e'; ctx.fillRect(x, y + sh - 5 * u, sw, 5 * u);
+      } else if (i === S.ammo && S.reloading) {
+        const f = S.reloadT / LOAD_TIME;
+        ctx.save(); roundRect(x, y, sw, sh, 3 * u); ctx.clip();
+        ctx.fillStyle = 'rgba(255,200,87,0.75)'; ctx.fillRect(x, y + sh * (1 - f), sw, sh * f);
+        ctx.restore();
+      }
+    }
+    ctx.font = `600 ${Math.round(12 * u + 2)}px ${FONT}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.direction = 'rtl';
+    const ty = y + sh + 6 * u;
+    if (S.stun > 0) { ctx.fillStyle = '#ff8a7a'; ctx.fillText('התותח משותק…', cx, ty); }
+    else if (S.reloading) { ctx.fillStyle = '#ffd88a'; ctx.fillText('טוען…', cx, ty); }
+    else if (S.ammo === 0 && S.mode === 'play') {
+      ctx.fillStyle = Math.sin(S.time * 10) > -0.2 || S.emptyFlash > 0 ? '#ff5a3c' : 'rgba(255,90,60,0.4)';
+      ctx.fillText(finePointer ? 'המחסנית ריקה! R לטעינה' : 'המחסנית ריקה! לחצו טען', cx, ty);
+    }
+  }
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  }
+  function drawTexts() {
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.direction = 'rtl';
+    for (const t of S.texts) {
+      ctx.globalAlpha = Math.min(1, 2 * (1 - t.t / t.life));
+      ctx.font = `800 ${Math.round(t.size * u + 2)}px ${FONT}`;
+      ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillText(t.txt, t.x + 1, t.y + 1);
+      ctx.fillStyle = t.color; ctx.fillText(t.txt, t.x, t.y);
+    }
+    ctx.globalAlpha = 1;
+  }
+  let pointerIn = false;
+  function drawCrosshair() {
+    if (!finePointer || S.mode !== 'play' || !pointerIn) return;
+    const x = S.aimX, y = Math.min(S.aimY, groundY - 26 * u), r = 11 * u;
+    const col = S.ammo > 0 && S.stun <= 0 ? '#ffc857' : '#ff5a3c';
+    ctx.strokeStyle = col; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x - r - 5 * u, y); ctx.lineTo(x - r + 4 * u, y);
+    ctx.moveTo(x + r - 4 * u, y); ctx.lineTo(x + r + 5 * u, y);
+    ctx.moveTo(x, y - r - 5 * u); ctx.lineTo(x, y - r + 4 * u);
+    ctx.moveTo(x, y + r - 4 * u); ctx.lineTo(x, y + r + 5 * u);
+    ctx.stroke();
+  }
+
+  // ---------- HUD ----------
+  const fmt = (n) => n.toLocaleString('he-IL');
+  const hudCache = {};
+  function setText(id, v) { if (hudCache[id] !== v) { hudCache[id] = v; document.getElementById(id).textContent = v; } }
+  function hud() {
+    setText('score', fmt(S.score));
+    setText('wave', S.wave ? String(S.wave) : '–');
+    setText('best', fmt(Math.max(best, S.score)));
+    const rb = $('#reloadBtn');
+    rb.classList.toggle('urgent', S.mode === 'play' && S.ammo === 0 && !S.reloading && S.stun <= 0);
+    rb.classList.toggle('busy', S.reloading);
+    rb.hidden = S.mode === 'menu' && !$('#startOv').hidden;
+  }
+
+  // ---------- loop ----------
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    if (S.mode !== 'pause') update(dt);
+    draw();
+    hud();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // ---------- input ----------
+  function localPos(ev) { const r = cv.getBoundingClientRect(); return { x: ev.clientX - r.left, y: ev.clientY - r.top }; }
+  cv.addEventListener('pointermove', (ev) => { pointerIn = true; const p = localPos(ev); S.aimX = p.x; S.aimY = p.y; });
+  cv.addEventListener('pointerleave', () => { pointerIn = false; });
+  cv.addEventListener('pointerdown', (ev) => {
+    ev.preventDefault();
+    pointerIn = ev.pointerType === 'mouse';
+    if (ev.button === 2) { startReload(); return; }
+    const p = localPos(ev);
+    fire(p.x, p.y);
+  });
+  cv.addEventListener('contextmenu', (ev) => ev.preventDefault());
+  $('#reloadBtn').addEventListener('pointerdown', (ev) => { ev.preventDefault(); ev.stopPropagation(); startReload(); });
+  $('#reloadBtn').addEventListener('click', (ev) => { if (ev.detail === 0) startReload(); });
+  $('#startBtn').addEventListener('click', startGame);
+  $('#againBtn').addEventListener('click', startGame);
+  $('#resumeBtn').addEventListener('click', () => setPaused(false));
+  $('#pauseBtn').addEventListener('click', (ev) => { ev.currentTarget.blur(); setPaused(S.mode === 'play'); });
+  $('#muteBtn').addEventListener('click', (ev) => { muted = !muted; ev.currentTarget.textContent = muted ? 'צליל: כבוי' : 'צליל: פועל'; ev.currentTarget.blur(); });
+  window.addEventListener('keydown', (ev) => {
+    const k = ev.key.toLowerCase();
+    if (k === 'r' || k === 'ר' || k === ' ' || k === 'arrowdown') {
+      if (S.mode === 'play') { ev.preventDefault(); startReload(); }
+    } else if (k === 'p' || k === 'פ' || k === 'escape') {
+      if (S.mode === 'play') setPaused(true); else if (S.mode === 'pause') setPaused(false);
+    } else if (k === 'enter' && S.mode === 'menu' && !$('#startOv').hidden) {
+      startGame();
+    }
+  });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) setPaused(true); });
+  document.body.classList.add('menu');
+})();
+</script>
