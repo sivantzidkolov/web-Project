@@ -145,10 +145,10 @@
     <h1>Night <span>Intercept</span></h1>
     <p>Missiles and drones are falling on the city. Your cannon sits in the middle and the magazine holds only 6 shells. Fire, reload, and intercept before they hit.</p>
     <ul class="rules">
-      <li><b>Click / tap</b><span>Fires a shell that bursts exactly where you aimed. Lead your target a little.</span></li>
+      <li><b>Click / tap</b><span>Fires a shell in that direction. It keeps flying to the edge of the screen and bursts on the first thing in its path.</span></li>
       <li><b>R / Space / right-click</b><span>Reload. One shell goes in every 0.4 s, and firing stops the reload.</span></li>
       <li><b>Chain</b><span>A destroyed threat blows up whatever is next to it. Several kills from one blast multiply the score.</span></li>
-      <li><b>∞ Bonus orb</b><span>A golden orb crosses the sky now and then. Hit it for 10 seconds of unlimited, rapid fire.</span></li>
+      <li><b>Bonus orbs</b><span>Shoot one to activate it: ∞ unlimited ammo (10 s), slow motion (8 s), or a shield over the city (12 s).</span></li>
       <li><b>Birds</b><span>Not a threat. Hitting a bird costs 50 points.</span></li>
     </ul>
     <div class="legend" aria-label="Threat types">
@@ -157,7 +157,9 @@
       <span><i style="background:#ffe066"></i>Splitter (wave 4+)</span>
       <span><i style="background:#9aa4c8"></i>Drone (wave 2+)</span>
       <span><i style="background:#e6ecff"></i>Bird</span>
-      <span><i style="background:#7ff0d0"></i>∞ Bonus</span>
+      <span><i style="background:#ffe066;box-shadow:0 0 0 2px #7ff0d0"></i>Ammo bonus</span>
+      <span><i style="background:#8ab4ff"></i>Slow-mo bonus</span>
+      <span><i style="background:#9dff8a"></i>Shield bonus</span>
     </div>
     <button class="primary" id="startBtn" type="button">Start game</button>
     <span class="hint">P or Esc to pause. The city falls when all six buildings are hit.</span>
@@ -200,6 +202,12 @@
   const HEIGHTS = [0.9, 1.2, 0.75, 1.05, 0.8, 1.15];
   const PTS = { missile: 100, fast: 150, mirv: 200, child: 75, drone: 150 };
   const POWER_TIME = 10;  // seconds of unlimited ammo
+  const DOME_H = 150;     // shield dome height (in u)
+  const POWERS = {
+    ammo:   { key: 'powerT',  time: 10, color: '#7ff0d0', rgb: '127,240,208', label: 'Unlimited ammo', name: '∞ UNLIMITED AMMO', sub: '10 seconds of rapid fire. Go!', core: ['#ffffff', '#ffe066', '#e0a020'] },
+    slow:   { key: 'slowT',   time: 8,  color: '#8ab4ff', rgb: '138,180,255', label: 'Slow motion',    name: 'SLOW MOTION',      sub: 'Every threat slows down for 8 seconds', core: ['#ffffff', '#8ab4ff', '#3a62c8'] },
+    shield: { key: 'shieldT', time: 12, color: '#9dff8a', rgb: '157,255,138', label: 'City shield',    name: 'CITY SHIELD',      sub: 'A dome guards the city for 12 seconds', core: ['#ffffff', '#9dff8a', '#3c9a2c'] },
+  };
   const isHostile = (e) => e.type !== 'bird' && e.type !== 'bonus';
   const FONT = '"Rubik", "Segoe UI", system-ui, sans-serif';
 
@@ -214,7 +222,7 @@
       ammo: CAP, reloading: false, reloadT: 0, cd: 0, stun: 0, recoil: 0, emptyFlash: 0,
       buildings: SLOTS.map((f, i) => ({ f, h: HEIGHTS[i], alive: true, seed: i * 7919 + 13, smokeT: 0 })),
       shells: [], booms: [], enemies: [], parts: [], texts: [],
-      toSpawn: 0, spawnT: 0, birdT: 1.5, bonusT: 0, powerT: 0, between: false, interT: 0, shake: 0,
+      toSpawn: 0, spawnT: 0, birdT: 1.5, bonusT: 0, powerT: 0, slowT: 0, shieldT: 0, lastBonus: '', between: false, interT: 0, shake: 0,
       shots: 0, hits: 0, kills: 0,
       aimX: 0, aimY: 0,
     };
@@ -342,7 +350,10 @@
   function spawnBonus() {
     const left = Math.random() < 0.5;
     const y0 = H * (0.14 + Math.random() * 0.22);
-    S.enemies.push({ type: 'bonus', x: left ? -30 * u : W + 30 * u, baseY: y0, y: y0, vx: (left ? 1 : -1) * (120 + Math.random() * 50) * u, vy: 0, r: 15 * u, t: 0, ph: Math.random() * 6 });
+    const kinds = Object.keys(POWERS).filter((k) => k !== S.lastBonus);
+    const kind = kinds[(Math.random() * kinds.length) | 0];
+    S.lastBonus = kind;
+    S.enemies.push({ type: 'bonus', kind, x: left ? -30 * u : W + 30 * u, baseY: y0, y: y0, vx: (left ? 1 : -1) * (120 + Math.random() * 50) * u, vy: 0, r: 15 * u, t: 0, ph: Math.random() * 6 });
   }
 
   // ---------- effects ----------
@@ -363,6 +374,28 @@
     return Math.max(0, b.max * (1 - (t - 0.45) / (b.life - 0.45)));
   }
 
+  function aimAngle(tx, ty) {
+    const p = pivot();
+    const ang = Math.atan2(ty - p.y, tx - p.x);
+    if (ang > 0) return tx < p.x ? -Math.PI + 0.08 : -0.08; // clicked below the barrel
+    return Math.max(-Math.PI + 0.08, Math.min(-0.08, ang));
+  }
+  function segDist(px, py, x0, y0, x1, y1) {
+    const dx = x1 - x0, dy = y1 - y0, l2 = dx * dx + dy * dy || 1;
+    const t = Math.max(0, Math.min(1, ((px - x0) * dx + (py - y0) * dy) / l2));
+    return Math.hypot(px - (x0 + t * dx), py - (y0 + t * dy));
+  }
+  function domeY(x) {
+    const a = W / 2 + 30 * u, t = Math.min(1, Math.abs(x - W / 2) / a);
+    return groundY - DOME_H * u * Math.sqrt(1 - t * t);
+  }
+  function shieldBlock(e) {
+    S.score += 25;
+    addText(e.x, e.y - 12 * u, '+25 blocked', '#9dff8a', 13);
+    burst(e.x, e.y, 18, ['#9dff8a', '#ffffff', '#d8ffd0'], 150, 0.5, 40);
+    tone(900, 400, 0.12, 0.07, 'sine');
+  }
+
   // ---------- actions ----------
   function fire(tx, ty) {
     if (S.mode !== 'play') return;
@@ -371,15 +404,13 @@
     if (S.stun > 0) { sfx.empty(); return; }
     if (S.ammo <= 0) { sfx.empty(); S.emptyFlash = 1; return; }
     if (S.cd > 0) return;
-    ty = Math.min(ty, groundY - 26 * u);
     const p = pivot();
-    let ang = Math.atan2(ty - p.y, tx - p.x);
-    ang = Math.max(-Math.PI + 0.12, Math.min(-0.12, ang));
+    const ang = aimAngle(tx, ty);
     const L = 40 * u;
     const sx = p.x + Math.cos(ang) * L, sy = p.y + Math.sin(ang) * L;
-    const dx = tx - sx, dy = ty - sy, d = Math.hypot(dx, dy) || 1;
-    const sp = 900 * u;
-    S.shells.push({ x: sx, y: sy, tx, ty, vx: (dx / d) * sp, vy: (dy / d) * sp, rem: d, chain: { kills: 0, counted: false } });
+    const sp = 1000 * u;
+    // The shell flies along the line through the click and on to the screen edge.
+    S.shells.push({ x: sx, y: sy, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, chain: { kills: 0, counted: false } });
     if (S.powerT > 0) { S.cd = FIRE_CD * 0.5; }
     else { S.ammo--; S.reloading = false; S.reloadT = 0; S.cd = FIRE_CD; }
     S.recoil = 1; S.shots++;
@@ -395,12 +426,14 @@
   function kill(e, chain) {
     e.dead = true;
     if (e.type === 'bonus') {
-      S.powerT = POWER_TIME; S.ammo = CAP; S.reloading = false; S.reloadT = 0; S.stun = 0;
+      const P = POWERS[e.kind];
+      S[P.key] = P.time;
+      if (e.kind === 'ammo') { S.ammo = CAP; S.reloading = false; S.reloadT = 0; S.stun = 0; }
       S.score += 250;
       if (chain) { chain.kills++; if (!chain.counted) { chain.counted = true; S.hits++; } }
-      addText(e.x, e.y - 14 * u, '+250  UNLIMITED AMMO!', '#7ff0d0', 17);
-      burst(e.x, e.y, 30, ['#7ff0d0', '#ffffff', '#ffe066'], 200, 0.9, 30, 2.6);
-      banner('∞ UNLIMITED AMMO', `${POWER_TIME} seconds of rapid fire. Go!`);
+      addText(e.x, e.y - 14 * u, `+250  ${P.name}!`, P.color, 17);
+      burst(e.x, e.y, 30, [P.color, '#ffffff', '#ffe066'], 200, 0.9, 30, 2.6);
+      banner(P.name, P.sub);
       sfx.power();
       return;
     }
@@ -528,12 +561,19 @@
         S.powerT -= dt;
         if (S.powerT <= 0) { S.powerT = 0; sfx.powerEnd(); addText(W / 2, groundY - 60 * u, 'Unlimited ammo over', '#9aa4c8', 14); }
       }
+      for (const k of ['slow', 'shield']) {
+        const P = POWERS[k];
+        if (S[P.key] > 0) {
+          S[P.key] -= dt;
+          if (S[P.key] <= 0) { S[P.key] = 0; sfx.powerEnd(); addText(W / 2, H * 0.3, `${P.label} over`, '#9aa4c8', 14); }
+        }
+      }
       // spawning
       if (!S.between) {
         S.bonusT -= dt;
         if (S.bonusT <= 0) { spawnBonus(); S.bonusT = 22 + Math.random() * 14; }
         if (S.toSpawn > 0) {
-          S.spawnT -= dt;
+          S.spawnT -= S.slowT > 0 ? dt * 0.5 : dt;
           if (S.spawnT <= 0) {
             spawnEnemy(); S.toSpawn--;
             if (S.wave >= 3 && S.toSpawn > 0 && Math.random() < 0.22) { spawnEnemy(); S.toSpawn--; }
@@ -559,9 +599,15 @@
 
     // shells
     for (const s of S.shells) {
-      const step = Math.hypot(s.vx, s.vy) * dt;
-      if (step >= s.rem) { s.done = true; addBoom(s.tx, s.ty, true, 46 * u, s.chain); sfx.boom(); }
-      else { s.x += s.vx * dt; s.y += s.vy * dt; s.rem -= step; }
+      const x0 = s.x, y0 = s.y;
+      s.x += s.vx * dt; s.y += s.vy * dt;
+      const hit = S.enemies.find((e) => !e.dead && !e.gone && segDist(e.x, e.y, x0, y0, s.x, s.y) < e.r + 4 * u);
+      if (hit) {
+        s.done = true; s.x = hit.x; s.y = hit.y;
+        addBoom(hit.x, hit.y, true, 38 * u, s.chain);
+        kill(hit, s.chain);
+        if (hit.type === 'bonus' || hit.type === 'bird') sfx.boom();
+      } else if (s.x < -30 || s.x > W + 30 || s.y < -30) s.done = true;
     }
     S.shells = S.shells.filter((s) => !s.done);
 
@@ -569,6 +615,7 @@
     for (const e of S.enemies) {
       if (e.dead) continue;
       e.t += dt;
+      const edt = S.slowT > 0 && isHostile(e) ? dt * 0.35 : dt;
       if (e.type === 'bird' || e.type === 'bonus') {
         e.x += e.vx * dt;
         e.y = e.baseY + Math.sin(e.t * (e.type === 'bonus' ? 3.4 : 2.6) + e.ph) * (e.type === 'bonus' ? 30 : 12) * u;
@@ -576,7 +623,7 @@
         continue;
       }
       if (e.type === 'drone' && !e.diving) {
-        e.x += e.vx * dt;
+        e.x += e.vx * edt;
         if ((e.vx > 0 && e.x >= e.tgt.x) || (e.vx < 0 && e.x <= e.tgt.x)) {
           e.diving = true;
           if (e.tgt.b && !e.tgt.b.alive) e.tgt = pickTarget(false);
@@ -585,8 +632,8 @@
         }
         continue;
       }
-      e.x += e.vx * dt; e.y += e.vy * dt;
-      e.trailT -= dt;
+      e.x += e.vx * edt; e.y += e.vy * edt;
+      e.trailT -= edt;
       if (e.trailT <= 0) { e.trail.push({ x: e.x, y: e.y }); if (e.trail.length > 70) e.trail.shift(); e.trailT = 0.04; }
       if (e.type === 'mirv' && e.y > H * 0.33) {
         e.dead = true;
@@ -595,6 +642,7 @@
         for (let i = 0; i < 3; i++) launch('child', e.x, e.y, pickTarget(false), sp, e.trail.slice(-20));
         continue;
       }
+      if (S.shieldT > 0 && e.y >= domeY(e.x)) { e.dead = true; shieldBlock(e); continue; }
       if (e.y >= e.tgt.y) { e.dead = true; if (S.mode === 'play') impact(e); }
     }
 
@@ -666,14 +714,17 @@
     ctx.fillStyle = 'rgba(160,175,230,0.25)'; ctx.fillRect(-20, groundY, W + 40, 1);
 
     drawBuildings();
+    drawShield();
     drawEnemies();
     drawShells();
     drawBooms();
     drawParts();
     drawCannon();
     drawTexts();
+    if (S.slowT > 0) { ctx.fillStyle = `rgba(110,150,255,${S.slowT < 1.5 ? 0.05 : 0.09})`; ctx.fillRect(-20, -20, W + 40, H + 40); }
     ctx.restore();
     drawAmmo();
+    drawPowers();
     drawCrosshair();
   }
 
@@ -753,20 +804,65 @@
     }
   }
   function drawBonus(e) {
+    const P = POWERS[e.kind];
     const pulse = 1 + Math.sin(e.t * 8) * 0.12;
     const R = 12 * u * pulse;
     const gl = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, R * 3);
-    gl.addColorStop(0, 'rgba(127,240,208,0.55)'); gl.addColorStop(1, 'rgba(127,240,208,0)');
+    gl.addColorStop(0, `rgba(${P.rgb},0.55)`); gl.addColorStop(1, `rgba(${P.rgb},0)`);
     ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(e.x, e.y, R * 3, 0, Math.PI * 2); ctx.fill();
     const og = ctx.createRadialGradient(e.x - R * 0.3, e.y - R * 0.3, 1, e.x, e.y, R);
-    og.addColorStop(0, '#ffffff'); og.addColorStop(0.5, '#ffe066'); og.addColorStop(1, '#e0a020');
+    og.addColorStop(0, P.core[0]); og.addColorStop(0.5, P.core[1]); og.addColorStop(1, P.core[2]);
     ctx.fillStyle = og; ctx.beginPath(); ctx.arc(e.x, e.y, R, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = 'rgba(127,240,208,0.9)'; ctx.lineWidth = 2 * u;
+    ctx.strokeStyle = `rgba(${P.rgb},0.9)`; ctx.lineWidth = 2 * u;
     ctx.beginPath(); ctx.arc(e.x, e.y, R + 5 * u, e.t * 4, e.t * 4 + Math.PI * 1.4); ctx.stroke();
-    ctx.fillStyle = '#3a2a05'; ctx.font = `800 ${Math.round(15 * u)}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('∞', e.x, e.y + 1 * u);
+    const ink = '#1c1a2e';
+    ctx.strokeStyle = ink; ctx.fillStyle = ink; ctx.lineWidth = 1.8 * u; ctx.lineCap = 'round';
+    if (e.kind === 'ammo') {
+      ctx.font = `800 ${Math.round(15 * u)}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('∞', e.x, e.y + 1 * u);
+    } else if (e.kind === 'slow') {
+      ctx.beginPath(); ctx.arc(e.x, e.y, 6.5 * u, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(e.x, e.y); ctx.lineTo(e.x, e.y - 4.5 * u); ctx.moveTo(e.x, e.y); ctx.lineTo(e.x + 3.5 * u, e.y + 1.5 * u); ctx.stroke();
+    } else {
+      const k = 7 * u;
+      ctx.beginPath();
+      ctx.moveTo(e.x, e.y - k); ctx.lineTo(e.x + k * 0.85, e.y - k * 0.6); ctx.lineTo(e.x + k * 0.7, e.y + k * 0.2);
+      ctx.quadraticCurveTo(e.x + k * 0.4, e.y + k * 0.8, e.x, e.y + k); ctx.quadraticCurveTo(e.x - k * 0.4, e.y + k * 0.8, e.x - k * 0.7, e.y + k * 0.2);
+      ctx.lineTo(e.x - k * 0.85, e.y - k * 0.6); ctx.closePath(); ctx.stroke();
+    }
   }
-  function drawDrone(e) {
+  function drawShield() {
+    if (S.shieldT <= 0) return;
+    const a = W / 2 + 30 * u, h = DOME_H * u;
+    const vis = S.shieldT < 2 ? (Math.sin(S.time * 25) > 0 ? 1 : 0.35) : 1;
+    ctx.save();
+    ctx.globalAlpha = vis;
+    const g = ctx.createLinearGradient(0, groundY - h, 0, groundY);
+    g.addColorStop(0, 'rgba(157,255,138,0.16)'); g.addColorStop(1, 'rgba(157,255,138,0.03)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.ellipse(W / 2, groundY, a, h, 0, Math.PI, 0); ctx.fill();
+    ctx.strokeStyle = `rgba(157,255,138,${0.5 + 0.2 * Math.sin(S.time * 5)})`; ctx.lineWidth = 2 * u;
+    ctx.beginPath(); ctx.ellipse(W / 2, groundY, a, h, 0, Math.PI, 0); ctx.stroke();
+    ctx.strokeStyle = 'rgba(157,255,138,0.15)'; ctx.lineWidth = 1;
+    for (let i = 1; i <= 3; i++) { ctx.beginPath(); ctx.ellipse(W / 2, groundY, a * (i / 4), h, 0, Math.PI, 0); ctx.stroke(); }
+    ctx.restore();
+  }
+  function drawPowers() {
+    if (S.mode === 'menu') return;
+    const active = ['slow', 'shield'].filter((k) => S[POWERS[k].key] > 0);
+    const bw = 150 * u;
+    let y = 64 + 6 * u;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.direction = 'ltr';
+    ctx.font = `800 ${Math.round(11 * u + 2)}px ${FONT}`;
+    for (const k of active) {
+      const P = POWERS[k], t = S[P.key];
+      ctx.fillStyle = P.color; ctx.fillText(`${P.label.toUpperCase()}  ${t.toFixed(1)}s`, W / 2, y);
+      ctx.fillStyle = `rgba(${P.rgb},0.18)`; roundRect(W / 2 - bw / 2, y + 3, bw, 6 * u, 3 * u); ctx.fill();
+      ctx.fillStyle = P.color; roundRect(W / 2 - bw / 2, y + 3, Math.max(6 * u, bw * (t / P.time)), 6 * u, 3 * u); ctx.fill();
+      y += 30 * u + 6;
+    }
+  }
+    function drawDrone(e) {
     const ang = e.diving ? Math.atan2(e.vy, e.vx) : (e.vx > 0 ? 0 : Math.PI);
     ctx.save(); ctx.translate(e.x, e.y + (e.diving ? 0 : Math.sin(e.t * 3) * 2 * u)); ctx.rotate(ang);
     ctx.fillStyle = '#9aa4c8';
@@ -790,13 +886,9 @@
   }
   function drawShells() {
     for (const s of S.shells) {
-      // target marker
-      ctx.strokeStyle = 'rgba(255,200,87,0.7)'; ctx.lineWidth = 1.5 * u;
-      const k = 5 * u;
-      ctx.beginPath(); ctx.moveTo(s.tx - k, s.ty - k); ctx.lineTo(s.tx + k, s.ty + k); ctx.moveTo(s.tx + k, s.ty - k); ctx.lineTo(s.tx - k, s.ty + k); ctx.stroke();
       const sp = Math.hypot(s.vx, s.vy);
       ctx.strokeStyle = 'rgba(255,240,200,0.9)'; ctx.lineWidth = 2.4 * u;
-      ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - (s.vx / sp) * 16 * u, s.y - (s.vy / sp) * 16 * u); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - (s.vx / sp) * 26 * u, s.y - (s.vy / sp) * 26 * u); ctx.stroke();
       ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(s.x, s.y, 2.4 * u, 0, Math.PI * 2); ctx.fill();
     }
   }
@@ -833,8 +925,7 @@
   }
   function drawCannon() {
     const p = pivot();
-    let ang = Math.atan2(S.aimY - p.y, S.aimX - p.x);
-    ang = Math.max(-Math.PI + 0.12, Math.min(-0.12, ang));
+    let ang = aimAngle(S.aimX, S.aimY);
     if (S.mode === 'menu') ang = -Math.PI / 2 + Math.sin(S.time * 0.6) * 0.5;
     // platform
     ctx.fillStyle = '#2b3360';
@@ -914,8 +1005,13 @@
   let pointerIn = false;
   function drawCrosshair() {
     if (!finePointer || S.mode !== 'play' || !pointerIn) return;
-    const x = S.aimX, y = Math.min(S.aimY, groundY - 26 * u), r = 11 * u;
+    const x = S.aimX, y = S.aimY, r = 11 * u;
     const col = S.powerT > 0 ? '#7ff0d0' : S.ammo > 0 && S.stun <= 0 ? '#ffc857' : '#ff5a3c';
+    const p = pivot(), ang = aimAngle(x, y), L = 40 * u, far = W + H;
+    ctx.save();
+    ctx.setLineDash([4 * u, 9 * u]); ctx.strokeStyle = 'rgba(255,214,140,0.16)'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(p.x + Math.cos(ang) * L, p.y + Math.sin(ang) * L); ctx.lineTo(p.x + Math.cos(ang) * far, p.y + Math.sin(ang) * far); ctx.stroke();
+    ctx.restore();
     ctx.strokeStyle = col; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
     ctx.beginPath();
