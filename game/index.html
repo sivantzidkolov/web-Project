@@ -451,7 +451,7 @@
     const kinds = Object.keys(POWERS).filter((k) => k !== S.lastBonus);
     const kind = kinds[(Math.random() * kinds.length) | 0];
     S.lastBonus = kind;
-    S.enemies.push({ type: 'bonus', kind, x: left ? -30 * u : W + 30 * u, baseY: y0, y: y0, vx: (left ? 1 : -1) * (120 + Math.random() * 50) * u, vy: 0, r: 15 * u, t: 0, ph: Math.random() * 6 });
+    S.enemies.push({ type: 'bonus', kind, x: left ? -30 * u : W + 30 * u, baseY: y0, y: y0, vx: (left ? 1 : -1) * (102 + Math.random() * 42) * u, vy: 0, r: 18 * u, t: 0, ph: Math.random() * 6 });
   }
 
   // ---------- effects ----------
@@ -669,7 +669,7 @@
       // spawning
       if (!S.between) {
         S.bonusT -= dt;
-        if (S.bonusT <= 0) { spawnBonus(); S.bonusT = 22 + Math.random() * 14; }
+        if (S.bonusT <= 0) { spawnBonus(); S.bonusT = 18 + Math.random() * 12; }
         if (S.toSpawn > 0) {
           S.spawnT -= S.slowT > 0 ? dt * 0.5 : dt;
           if (S.spawnT <= 0) {
