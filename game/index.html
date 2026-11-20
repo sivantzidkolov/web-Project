@@ -218,12 +218,12 @@
       </div>
       <div class="ctrl">
         <div class="keys"><kbd>R</kbd><kbd>Space</kbd><kbd>Right-click</kbd><kbd>LOAD</kbd></div>
-        <div><b>Reload</b><span>8 shells per magazine, one every 0.3 seconds. Firing stops the reload, so pick your moment. When you hold fire, the cannon also loads itself, more slowly.</span>
+        <div><b>Reload</b><span>Every press loads one shell instantly, so tap fast to fill all 8. When you hold fire, the cannon also loads itself.</span>
           <div class="mag" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
       </div>
       <div class="ctrl">
-        <div class="keys"><kbd>Chain</kbd></div>
-        <div><b>Chain reactions</b><span>Every threat you destroy explodes and can take out its neighbours. The second kill in one blast scores ×1.5, the third ×2, and so on.</span></div>
+        <div class="keys"><kbd>Combo</kbd></div>
+        <div><b>Big blasts</b><span>Your shells burst wide, and every threat you destroy explodes too. Catch several at once for DOUBLE, TRIPLE and MEGA bonuses: the second kill scores ×1.5, the third ×2, and so on.</span></div>
       </div>
       <div class="ctrl">
         <div class="keys"><kbd>P</kbd><kbd>Esc</kbd></div>
@@ -477,13 +477,14 @@
     }
   }
   function addBoom(x, y, friendly, max, chain) {
-    S.booms.push({ x, y, friendly, max, chain, t: 0, life: friendly ? 0.75 : 0.9 });
+    S.booms.push({ x, y, friendly, max, chain, t: 0, life: 0.95 });
   }
   function boomR(b) {
     const t = b.t;
     if (t < 0.18) return b.max * (1 - Math.pow(1 - t / 0.18, 3));
-    if (t < 0.45) return b.max;
-    return Math.max(0, b.max * (1 - (t - 0.45) / (b.life - 0.45)));
+    const hold = b.friendly ? 0.6 : 0.45;
+    if (t < hold) return b.max;
+    return Math.max(0, b.max * (1 - (t - hold) / (b.life - hold)));
   }
 
   function aimAngle(tx, ty) {
@@ -530,10 +531,12 @@
     sfx.shot();
   }
   function startReload() {
+    // every press puts one shell straight into the magazine
     if (S.mode !== 'play') return;
     ensureAudio();
-    if (S.ammo >= CAP || S.stun > 0 || S.reloading || S.powerT > 0) return;
-    S.reloading = true; S.reloadT = 0;
+    if (S.ammo >= CAP || S.stun > 0 || S.powerT > 0) return;
+    S.ammo++; S.autoT = 0;
+    if (S.ammo >= CAP) sfx.full(); else sfx.load();
   }
   function kill(e, chain) {
     e.dead = true;
@@ -562,8 +565,14 @@
     const mult = 1 + (chain.kills - 1) * 0.5;
     const pts = Math.round(PTS[e.type] * mult);
     S.score += pts;
-    addText(e.x, e.y - 12 * u, chain.kills > 1 ? `+${pts}  CHAIN ×${chain.kills}` : `+${pts}`, chain.kills > 1 ? '#7ff0d0' : '#ffd88a', chain.kills > 1 ? 16 : 14);
-    addBoom(e.x, e.y, true, (e.type === 'mirv' ? 38 : 30) * u, chain);
+    const k = chain.kills;
+    if (k > 1) {
+      const word = k === 2 ? 'DOUBLE!' : k === 3 ? 'TRIPLE!' : `MEGA ×${k}!`;
+      addText(e.x, e.y - 14 * u, `${word}  +${pts}`, k >= 4 ? '#ff7ae0' : k === 3 ? '#ffe066' : '#7ff0d0', Math.min(30, 14 + k * 3));
+      tone(440 * Math.pow(1.19, k), 880 * Math.pow(1.19, k), 0.12, 0.06, 'triangle');
+      if (k >= 3) S.shake = Math.min(1, S.shake + 0.12 * k);
+    } else addText(e.x, e.y - 12 * u, `+${pts}`, '#ffd88a', 14);
+    addBoom(e.x, e.y, true, (e.type === 'mirv' ? 70 : 55) * u, chain);
     burst(e.x, e.y, 14, ['#ffe9b0', '#ffb347', '#ff6a3c', '#ffffff'], 160, 0.6, 60);
     sfx.boom();
   }
@@ -717,10 +726,10 @@
     for (const s of S.shells) {
       const x0 = s.x, y0 = s.y;
       s.x += s.vx * dt; s.y += s.vy * dt;
-      const hit = S.enemies.find((e) => !e.dead && !e.gone && segDist(e.x, e.y, x0, y0, s.x, s.y) < e.r + 9 * u);
+      const hit = S.enemies.find((e) => !e.dead && !e.gone && segDist(e.x, e.y, x0, y0, s.x, s.y) < e.r + 16 * u);
       if (hit) {
         s.done = true; s.x = hit.x; s.y = hit.y;
-        addBoom(hit.x, hit.y, true, 50 * u, s.chain);
+        addBoom(hit.x, hit.y, true, 95 * u, s.chain);
         kill(hit, s.chain);
         if (hit.type === 'bonus' || hit.type === 'bird') sfx.boom();
       } else if (s.x < -30 || s.x > W + 30 || s.y < -30) s.done = true;
@@ -1133,7 +1142,7 @@
     else if (S.reloading) { ctx.fillStyle = '#ffd88a'; ctx.fillText('Loading…', cx, ty); }
     else if (S.ammo === 0 && S.mode === 'play') {
       ctx.fillStyle = Math.sin(S.time * 10) > -0.2 || S.emptyFlash > 0 ? '#ff5a3c' : 'rgba(255,90,60,0.4)';
-      ctx.fillText(finePointer ? 'EMPTY! Press R to reload' : 'EMPTY! Tap LOAD', cx, ty);
+      ctx.fillText(finePointer ? 'EMPTY! Tap R to load' : 'EMPTY! Tap LOAD', cx, ty);
     }
   }
   function roundRect(x, y, w, h, r) {
@@ -1354,7 +1363,7 @@
   window.addEventListener('keydown', (ev) => {
     const k = ev.key.toLowerCase();
     if (k === 'r' || k === 'ר' || k === ' ' || k === 'arrowdown') {
-      if (S.mode === 'play') { ev.preventDefault(); startReload(); }
+      if (S.mode === 'play') { ev.preventDefault(); if (!ev.repeat) startReload(); }
     } else if (k === 'p' || k === 'פ' || k === 'escape') {
       if (S.mode === 'play') setPaused(true); else if (S.mode === 'pause') setPaused(false);
     } else if (S.mode === 'menu' && !$('#startOv').hidden && (k === 'enter' || k === 'arrowright' || k === 'arrowleft')) {
