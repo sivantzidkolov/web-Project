@@ -110,9 +110,9 @@
   .ctrl span { font-size: 14px; color: #c8cee6; line-height: 1.45; }
   .mag { display: flex; gap: 5px; margin-top: 10px; }
   .mag i { width: 9px; height: 20px; border-radius: 3px; border: 1px solid rgba(255, 200, 87, 0.5); background: linear-gradient(var(--tracer), var(--tracer)) bottom / 100% 0% no-repeat; animation: magfill 3.6s linear infinite; }
-  .mag i:nth-child(2) { animation-delay: 0.4s; } .mag i:nth-child(3) { animation-delay: 0.8s; }
-  .mag i:nth-child(4) { animation-delay: 1.2s; } .mag i:nth-child(5) { animation-delay: 1.6s; } .mag i:nth-child(6) { animation-delay: 2s; }
-  @keyframes magfill { 0% { background-size: 100% 0%; } 11% { background-size: 100% 100%; } 88% { background-size: 100% 100%; } 89%, 100% { background-size: 100% 0%; } }
+  .mag i:nth-child(2) { animation-delay: 0.3s; } .mag i:nth-child(3) { animation-delay: 0.6s; } .mag i:nth-child(4) { animation-delay: 0.9s; }
+  .mag i:nth-child(5) { animation-delay: 1.2s; } .mag i:nth-child(6) { animation-delay: 1.5s; } .mag i:nth-child(7) { animation-delay: 1.8s; } .mag i:nth-child(8) { animation-delay: 2.1s; }
+  @keyframes magfill { 0% { background-size: 100% 0%; } 8% { background-size: 100% 100%; } 88% { background-size: 100% 100%; } 89%, 100% { background-size: 100% 0%; } }
   .threats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .threat { background: rgba(255, 255, 255, 0.04); border: 1px solid transparent; border-radius: 10px; padding: 8px 8px 10px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
   .threat.friend { grid-column: 1 / -1; display: grid; grid-template-columns: 130px 1fr; gap: 12px; align-items: center; border-color: rgba(255, 90, 60, 0.35); }
@@ -218,8 +218,8 @@
       </div>
       <div class="ctrl">
         <div class="keys"><kbd>R</kbd><kbd>Space</kbd><kbd>Right-click</kbd><kbd>LOAD</kbd></div>
-        <div><b>Reload</b><span>One shell every 0.4 seconds. Firing stops the reload, so pick your moment. When you hold fire, the cannon also loads itself, slowly.</span>
-          <div class="mag" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+        <div><b>Reload</b><span>8 shells per magazine, one every 0.3 seconds. Firing stops the reload, so pick your moment. When you hold fire, the cannon also loads itself, more slowly.</span>
+          <div class="mag" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
       </div>
       <div class="ctrl">
         <div class="keys"><kbd>Chain</kbd></div>
@@ -296,11 +296,11 @@
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const finePointer = matchMedia('(pointer: fine)').matches;
 
-  const CAP = 6;            // shells per magazine
-  const LOAD_TIME = 0.42;   // seconds per shell
+  const CAP = 8;            // shells per magazine
+  const LOAD_TIME = 0.3;    // seconds per shell
   const FIRE_CD = 0.16;     // seconds between shots
   const NIGHT = 180;        // seconds until sunrise
-  const AUTO_TIME = 1.1;    // seconds per shell when the cannon loads itself
+  const AUTO_TIME = 0.8;    // seconds per shell when the cannon loads itself
   const MILESTONES = [
     [30, 'Drones spotted', 'They cruise across, then dive'],
     [60, '2:00 until dawn', 'Fast missiles incoming'],
@@ -717,10 +717,10 @@
     for (const s of S.shells) {
       const x0 = s.x, y0 = s.y;
       s.x += s.vx * dt; s.y += s.vy * dt;
-      const hit = S.enemies.find((e) => !e.dead && !e.gone && segDist(e.x, e.y, x0, y0, s.x, s.y) < e.r + 4 * u);
+      const hit = S.enemies.find((e) => !e.dead && !e.gone && segDist(e.x, e.y, x0, y0, s.x, s.y) < e.r + 9 * u);
       if (hit) {
         s.done = true; s.x = hit.x; s.y = hit.y;
-        addBoom(hit.x, hit.y, true, 38 * u, s.chain);
+        addBoom(hit.x, hit.y, true, 50 * u, s.chain);
         kill(hit, s.chain);
         if (hit.type === 'bonus' || hit.type === 'bird') sfx.boom();
       } else if (s.x < -30 || s.x > W + 30 || s.y < -30) s.done = true;
@@ -1028,9 +1028,10 @@
   function drawShells() {
     for (const s of S.shells) {
       const sp = Math.hypot(s.vx, s.vy);
-      ctx.strokeStyle = 'rgba(255,240,200,0.9)'; ctx.lineWidth = 2.4 * u;
+      ctx.strokeStyle = 'rgba(255,240,200,0.9)'; ctx.lineWidth = 3.4 * u;
       ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - (s.vx / sp) * 26 * u, s.y - (s.vy / sp) * 26 * u); ctx.stroke();
-      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(s.x, s.y, 2.4 * u, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,214,140,0.35)'; ctx.beginPath(); ctx.arc(s.x, s.y, 7 * u, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(s.x, s.y, 3.4 * u, 0, Math.PI * 2); ctx.fill();
     }
   }
   function drawBooms() {
@@ -1256,9 +1257,9 @@
       ctx.save(); ctx.translate(px, py); ctx.rotate(ang); ctx.fillStyle = '#9aa4c8'; ctx.fillRect(2 * u - rec, -3.5 * u, 22 * u, 7 * u); ctx.restore();
       ctx.fillStyle = '#4b558c'; ctx.beginPath(); ctx.arc(px, py + 4 * u, 13 * u, Math.PI, 0); ctx.closePath(); ctx.fill();
       // magazine
-      const left = s >= tf ? 5 : 6;
-      for (let i = 0; i < 6; i++) {
-        const x = px - 27 * u + i * 9.5 * u, y = gy + 8 * u;
+      const left = s >= tf ? 7 : 8;
+      for (let i = 0; i < 8; i++) {
+        const x = px - 36.5 * u + i * 9.5 * u, y = gy + 8 * u;
         ctx.fillStyle = i < left ? '#ffc857' : 'rgba(255,200,87,0.2)';
         roundRect(x, y, 6 * u, 13 * u, 2 * u); ctx.fill();
       }
