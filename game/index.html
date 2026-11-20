@@ -477,12 +477,12 @@
     }
   }
   function addBoom(x, y, friendly, max, chain) {
-    S.booms.push({ x, y, friendly, max, chain, t: 0, life: 0.95 });
+    S.booms.push({ x, y, friendly, max, chain, t: 0, life: friendly ? 0.65 : 0.9 });
   }
   function boomR(b) {
     const t = b.t;
     if (t < 0.18) return b.max * (1 - Math.pow(1 - t / 0.18, 3));
-    const hold = b.friendly ? 0.52 : 0.45;
+    const hold = b.friendly ? 0.35 : 0.45;
     if (t < hold) return b.max;
     return Math.max(0, b.max * (1 - (t - hold) / (b.life - hold)));
   }
@@ -572,7 +572,7 @@
       tone(440 * Math.pow(1.19, k), 880 * Math.pow(1.19, k), 0.12, 0.06, 'triangle');
       if (k >= 3) S.shake = Math.min(1, S.shake + 0.12 * k);
     } else addText(e.x, e.y - 12 * u, `+${pts}`, '#ffd88a', 14);
-    addBoom(e.x, e.y, true, (e.type === 'mirv' ? 52 : 42) * u, chain);
+    addBoom(e.x, e.y, true, (e.type === 'mirv' ? 26 : 21) * u, chain);
     burst(e.x, e.y, 14, ['#ffe9b0', '#ffb347', '#ff6a3c', '#ffffff'], 160, 0.6, 60);
     sfx.boom();
   }
@@ -729,7 +729,7 @@
       const hit = S.enemies.find((e) => !e.dead && !e.gone && segDist(e.x, e.y, x0, y0, s.x, s.y) < e.r + 12 * u);
       if (hit) {
         s.done = true; s.x = hit.x; s.y = hit.y;
-        addBoom(hit.x, hit.y, true, 70 * u, s.chain);
+        addBoom(hit.x, hit.y, true, 35 * u, s.chain);
         kill(hit, s.chain);
         if (hit.type === 'bonus' || hit.type === 'bird') sfx.boom();
       } else if (s.x < -30 || s.x > W + 30 || s.y < -30) s.done = true;
