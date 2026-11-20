@@ -135,6 +135,8 @@
   .secondary { font: 700 15px var(--font-ui); color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 10px; padding: 11px 16px; cursor: pointer; }
   .secondary:hover { border-color: var(--muted); }
   .nav .primary { min-width: 140px; }
+  .stars { font-size: 40px; letter-spacing: 6px; line-height: 1; color: var(--tracer); }
+  .stars .off { color: rgba(255, 200, 87, 0.2); }
   .row-btns { display: flex; gap: 10px; flex-wrap: wrap; }
   .row-btns .primary { flex: 1; }
   .primary {
@@ -177,7 +179,7 @@
 
 <div id="hud">
   <div class="stat"><span class="lbl">SCORE</span><span class="val" id="score">0</span></div>
-  <div class="stat"><span class="lbl">WAVE</span><span class="val" id="wave">–</span></div>
+  <div class="stat"><span class="lbl">DAWN IN</span><span class="val" id="dawn">3:00</span></div>
   <div class="stat"><span class="lbl">BEST</span><span class="val" id="best">0</span></div>
   <div class="hud-btns">
     <button class="chip" id="muteBtn" type="button">Sound: on</button>
@@ -198,14 +200,14 @@
 
     <section class="step">
       <h1>Night <span>Intercept</span></h1>
-      <p class="lead">The city is under attack tonight. You command the last cannon, and every shell counts.</p>
+      <p class="lead">The city is under attack tonight. You command the last cannon. Hold out until the sun comes up.</p>
       <canvas class="demo wide" data-demo="intercept" aria-label="Animation: the cannon shoots down an incoming missile"></canvas>
       <div class="goals">
-        <div><b>6</b><span>buildings you must protect</span></div>
-        <div><b>6</b><span>shells in your magazine</span></div>
-        <div><b>∞</b><span>waves, each one faster</span></div>
+        <div><b>3:00</b><span>minutes until sunrise</span></div>
+        <div><b>6</b><span>buildings, each survives one hit</span></div>
+        <div><b>★★★</b><span>at dawn if all six are still standing</span></div>
       </div>
-      <p class="note">Your goal: survive as many waves as you can and score high. When the last building falls, the night is over.</p>
+      <p class="note">The sky gets lighter as dawn comes closer, and the attack slowly gets heavier. If all six buildings fall before sunrise, the night is lost.</p>
     </section>
 
     <section class="step" hidden>
@@ -216,7 +218,7 @@
       </div>
       <div class="ctrl">
         <div class="keys"><kbd>R</kbd><kbd>Space</kbd><kbd>Right-click</kbd><kbd>LOAD</kbd></div>
-        <div><b>Reload</b><span>One shell every 0.4 seconds. Firing stops the reload, so pick your moment.</span>
+        <div><b>Reload</b><span>One shell every 0.4 seconds. Firing stops the reload, so pick your moment. When you hold fire, the cannon also loads itself, slowly.</span>
           <div class="mag" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
       </div>
       <div class="ctrl">
@@ -233,13 +235,13 @@
       <h2>Know your threats</h2>
       <div class="threats">
         <div class="threat"><canvas class="demo" data-demo="missile"></canvas>
-          <div class="info"><div class="t-head"><b>Missile</b><span class="pts">+100</span></div><span class="tag">From wave 1</span><p>Falls in a straight line toward a building.</p></div></div>
+          <div class="info"><div class="t-head"><b>Missile</b><span class="pts">+100</span></div><span class="tag">From the start</span><p>Falls in a straight line toward a building.</p></div></div>
         <div class="threat"><canvas class="demo" data-demo="drone"></canvas>
-          <div class="info"><div class="t-head"><b>Drone</b><span class="pts">+150</span></div><span class="tag">From wave 2</span><p>Cruises across the sky, then dives onto its target.</p></div></div>
+          <div class="info"><div class="t-head"><b>Drone</b><span class="pts">+150</span></div><span class="tag">After 0:30</span><p>Cruises across the sky, then dives onto its target.</p></div></div>
         <div class="threat"><canvas class="demo" data-demo="fast"></canvas>
-          <div class="info"><div class="t-head"><b>Fast missile</b><span class="pts">+150</span></div><span class="tag">From wave 3</span><p>Almost twice as fast. Lead it more.</p></div></div>
+          <div class="info"><div class="t-head"><b>Fast missile</b><span class="pts">+150</span></div><span class="tag">After 1:00</span><p>Almost twice as fast. Lead it more.</p></div></div>
         <div class="threat"><canvas class="demo" data-demo="mirv"></canvas>
-          <div class="info"><div class="t-head"><b>Splitter</b><span class="pts">+200</span></div><span class="tag">From wave 4</span><p>Breaks into three missiles a third of the way down. Hit it high.</p></div></div>
+          <div class="info"><div class="t-head"><b>Splitter</b><span class="pts">+200</span></div><span class="tag">After 1:40</span><p>Breaks into three missiles a third of the way down. Hit it high.</p></div></div>
         <div class="threat friend"><canvas class="demo" data-demo="bird"></canvas>
           <div class="info"><div class="t-head"><b>Birds</b><span class="pts bad">−50</span></div><span class="tag bad">Don’t shoot</span><p>Harmless. A shell that hits a bird costs you points, so watch your line of fire.</p></div></div>
       </div>
@@ -274,9 +276,10 @@
 <div class="overlay" id="overOv" hidden>
   <div class="card">
     <h2 id="overTitle">The city has fallen</h2>
+    <div class="stars" id="oStars" aria-label="Stars"></div>
     <div class="stats">
       <div><span class="lbl">Score</span><span class="val" id="oScore">0</span></div>
-      <div><span class="lbl">Reached wave</span><span class="val" id="oWave">0</span></div>
+      <div><span class="lbl">Survived</span><span class="val" id="oTime">0:00</span></div>
       <div><span class="lbl">Intercepts</span><span class="val" id="oKills">0</span></div>
       <div><span class="lbl">Accuracy</span><span class="val" id="oAcc">0%</span></div>
     </div>
@@ -296,6 +299,15 @@
   const CAP = 6;            // shells per magazine
   const LOAD_TIME = 0.42;   // seconds per shell
   const FIRE_CD = 0.16;     // seconds between shots
+  const NIGHT = 180;        // seconds until sunrise
+  const AUTO_TIME = 1.1;    // seconds per shell when the cannon loads itself
+  const MILESTONES = [
+    [30, 'Drones spotted', 'They cruise across, then dive'],
+    [60, '2:00 until dawn', 'Fast missiles incoming'],
+    [100, 'Splitters incoming', 'Catch them high, before they split'],
+    [120, '1:00 until dawn', 'Hold on'],
+    [165, 'Almost morning!', '15 seconds to go'],
+  ];
   const SLOTS = [0.09, 0.21, 0.33, 0.67, 0.79, 0.91];
   const HEIGHTS = [0.9, 1.2, 0.75, 1.05, 0.8, 1.15];
   const PTS = { missile: 100, fast: 150, mirv: 200, child: 75, drone: 150 };
@@ -316,11 +328,11 @@
 
   function newState() {
     return {
-      mode: 'menu', score: 0, wave: 0, time: 0,
+      mode: 'menu', score: 0, time: 0, elapsed: 0, ms: 0, sinceShot: 0, autoT: 0,
       ammo: CAP, reloading: false, reloadT: 0, cd: 0, stun: 0, recoil: 0, emptyFlash: 0,
-      buildings: SLOTS.map((f, i) => ({ f, h: HEIGHTS[i], alive: true, seed: i * 7919 + 13, smokeT: 0 })),
+      buildings: SLOTS.map((f, i) => ({ f, h: HEIGHTS[i], alive: true, hp: 2, seed: i * 7919 + 13, smokeT: 0 })),
       shells: [], booms: [], enemies: [], parts: [], texts: [],
-      toSpawn: 0, spawnT: 0, birdT: 1.5, bonusT: 0, powerT: 0, slowT: 0, shieldT: 0, lastBonus: '', between: false, interT: 0, shake: 0,
+      toSpawn: 0, spawnT: 0, birdT: 1.5, bonusT: 0, powerT: 0, slowT: 0, shieldT: 0, lastBonus: '', shake: 0,
       shots: 0, hits: 0, kills: 0,
       aimX: 0, aimY: 0,
     };
@@ -348,6 +360,8 @@
   const pivot = () => ({ x: W / 2, y: groundY - 16 * u });
   function bRect(b) { const w = 44 * u, h = b.h * 72 * u; return { x: b.f * W - w / 2, y: groundY - h, w, h }; }
   const aliveB = () => S.buildings.filter((b) => b.alive);
+  const prog = () => Math.min(1, S.elapsed / NIGHT);
+  const clock = (sec) => { sec = Math.max(0, Math.ceil(sec)); return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`; };
 
   // ---------- audio ----------
   let actx = null, muted = false, noiseBuf = null;
@@ -397,18 +411,18 @@
   // ---------- spawning ----------
   function pickTarget(allowCannon) {
     const a = aliveB();
-    if (allowCannon && (Math.random() < 0.1 || !a.length)) return { cannon: true, x: W / 2, y: groundY - 6 * u };
+    if (allowCannon && (Math.random() < 0.08 || !a.length)) return { cannon: true, x: W / 2, y: groundY - 6 * u };
     if (!a.length) return { cannon: true, x: W / 2, y: groundY - 6 * u };
     const b = a[(Math.random() * a.length) | 0];
     return { b, x: b.f * W + (Math.random() - 0.5) * 22 * u, y: groundY - 4 * u };
   }
-  const baseSpeed = () => Math.min(115, 36 + S.wave * 5.5) * u;
+  const baseSpeed = () => (30 + 40 * prog()) * u;
 
-  function pickType(n) {
+  function pickType(t) {
     const r = Math.random();
-    if (n >= 4 && r < 0.14) return 'mirv';
-    if (n >= 3 && r < 0.34) return 'fast';
-    if (n >= 2 && r < 0.5) return 'drone';
+    if (t >= 100 && r < 0.12) return 'mirv';
+    if (t >= 60 && r < 0.3) return 'fast';
+    if (t >= 30 && r < 0.46) return 'drone';
     return 'missile';
   }
   function launch(type, sx, sy, tgt, speed, trail) {
@@ -416,20 +430,20 @@
     S.enemies.push({ type, x: sx, y: sy, vx: (dx / d) * speed, vy: (dy / d) * speed, tgt, trail: trail || [], trailT: 0, r: (type === 'mirv' ? 8 : 6) * u, t: 0 });
   }
   function spawnEnemy() {
-    const type = pickType(S.wave);
+    const type = pickType(S.elapsed);
     if (type === 'drone') {
       const left = Math.random() < 0.5;
       S.enemies.push({
         type, x: left ? -30 * u : W + 30 * u, y: H * (0.12 + Math.random() * 0.2),
-        vx: (left ? 1 : -1) * (55 + S.wave * 4) * u, vy: 0, tgt: pickTarget(false),
+        vx: (left ? 1 : -1) * (50 + 25 * prog()) * u, vy: 0, tgt: pickTarget(false),
         diving: false, r: 10 * u, t: Math.random() * 3, trail: [], trailT: 0,
       });
       return;
     }
     let sp = baseSpeed();
-    if (type === 'fast') sp *= 1.7;
+    if (type === 'fast') sp *= 1.6;
     if (type === 'mirv') sp *= 0.85;
-    launch(type, W * (0.04 + Math.random() * 0.92), -15 * u, pickTarget(S.wave >= 2), sp);
+    launch(type, W * (0.04 + Math.random() * 0.92), -15 * u, pickTarget(S.elapsed >= 45), sp);
   }
   function spawnBirds() {
     const left = Math.random() < 0.5;
@@ -511,7 +525,7 @@
     S.shells.push({ x: sx, y: sy, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, chain: { kills: 0, counted: false } });
     if (S.powerT > 0) { S.cd = FIRE_CD * 0.5; }
     else { S.ammo--; S.reloading = false; S.reloadT = 0; S.cd = FIRE_CD; }
-    S.recoil = 1; S.shots++;
+    S.recoil = 1; S.shots++; S.sinceShot = 0; S.autoT = 0;
     burst(sx, sy, 8, ['#fff1c2', '#ffc857', '#ff9a3c'], 120, 0.25);
     sfx.shot();
   }
@@ -566,68 +580,73 @@
     }
     const b = e.tgt.b;
     if (b && b.alive) {
-      b.alive = false;
+      b.hp--;
       const r = bRect(b);
+      if (b.hp > 0) {
+        burst(r.x + r.w / 2, r.y + 6 * u, 14, ['#2a3155', '#3a4270', '#ffb347'], 120, 1, 200, 2.6);
+        addText(r.x + r.w / 2, r.y - 16 * u, 'Building damaged', '#ffb08a', 15);
+        return;
+      }
+      b.alive = false;
       burst(r.x + r.w / 2, r.y + r.h / 2, 30, ['#2a3155', '#3a4270', '#ffb347', '#6b6f88'], 160, 1.4, 260, 3.2);
-      addText(r.x + r.w / 2, r.y - 16 * u, 'Building hit', '#ff8a7a', 15);
+      addText(r.x + r.w / 2, r.y - 16 * u, 'Building destroyed', '#ff8a7a', 15);
       if (!aliveB().length) gameOver();
     }
   }
 
-  // ---------- waves ----------
+  // ---------- the night ----------
   function startGame() {
     const keepAim = { x: S.aimX, y: S.aimY };
     S = newState();
     S.aimX = keepAim.x; S.aimY = keepAim.y;
     S.mode = 'play';
+    S.spawnT = 1.5;
+    S.bonusT = 12 + Math.random() * 8;
     document.body.classList.remove('menu');
     $('#startOv').hidden = true; $('#overOv').hidden = true; $('#pauseOv').hidden = true;
     ensureAudio();
-    startWave();
-  }
-  function startWave() {
-    S.wave++;
-    S.toSpawn = 6 + S.wave * 3;
-    S.spawnT = 1.4;
-    S.between = false;
-    S.bonusT = 5 + Math.random() * 10;
-    const tips = {
-      1: 'Aim where the missile will be, not where it is',
-      2: 'Drones fly across, then dive onto their target',
-      3: 'Fast missiles incoming',
-      4: 'Yellow missiles split in three. Catch them high',
-    };
-    banner(`Wave ${S.wave}`, tips[S.wave] || `${S.toSpawn} threats incoming`);
+    banner('Hold out until dawn', '3 minutes. Watch the sky get lighter.');
     sfx.wave();
   }
-  function waveClear() {
-    S.between = true; S.interT = 3.2;
-    const alive = aliveB().length;
-    const bonus = alive * 100 + S.ammo * 10;
-    S.score += bonus;
-    let sub = `City bonus +${bonus}`;
-    if (S.wave % 2 === 0) {
-      const dead = S.buildings.filter((b) => !b.alive);
-      if (dead.length) { dead[0].alive = true; sub += ' · one building rebuilt'; }
+  function dawn() {
+    S.mode = 'won';
+    S.reloading = false;
+    for (const e of S.enemies) {
+      if (!isHostile(e)) continue;
+      e.dead = true;
+      burst(e.x, e.y, 10, ['#ffe9b0', '#ffffff'], 90, 0.5);
     }
-    banner('Wave stopped', sub);
+    let bonus = 0;
+    for (const b of S.buildings) if (b.alive) bonus += b.hp === 2 ? 300 : 150;
+    S.score += bonus;
+    const standing = aliveB().length;
+    const stars = standing === 6 ? 3 : standing >= 4 ? 2 : 1;
+    banner('Sunrise! The city made it', `${'★'.repeat(stars)}  ·  City bonus +${bonus}`);
+    [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(() => tone(f, f, 0.25, 0.07, 'triangle'), i * 120));
+    endScreen(true, stars, 2600);
   }
   function gameOver() {
     S.mode = 'over';
     S.reloading = false;
+    endScreen(false, 0, 1400);
+  }
+  function endScreen(won, stars, delay) {
     const isBest = S.score > best;
     if (isBest) { best = S.score; try { localStorage.setItem('yirut-best', String(best)); } catch (e) {} }
     setTimeout(() => {
-      if (S.mode !== 'over') return;
+      if (S.mode !== (won ? 'won' : 'over')) return;
+      $('#overTitle').textContent = won ? 'You made it to sunrise!' : `The city fell ${clock(NIGHT - S.elapsed)} before dawn`;
+      $('#oStars').hidden = !won;
+      $('#oStars').innerHTML = [0, 1, 2].map((i) => `<span class="${i < stars ? '' : 'off'}">★</span>`).join('');
       $('#oScore').textContent = fmt(S.score);
-      $('#oWave').textContent = S.wave;
+      $('#oTime').textContent = won ? 'Full night' : clock(S.elapsed);
       $('#oKills').textContent = S.kills;
       $('#oAcc').textContent = S.shots ? Math.round((S.hits / S.shots) * 100) + '%' : '–';
       $('#oBest').textContent = isBest ? 'New best score!' : `Your best: ${fmt(best)}`;
       $('#overOv').hidden = false;
       document.body.classList.add('menu');
       $('#againBtn').focus();
-    }, 1400);
+    }, delay);
   }
   let bannerTimer = 0;
   function banner(t, s) {
@@ -648,6 +667,12 @@
     if (playing) {
       S.cd = Math.max(0, S.cd - dt);
       if (S.stun > 0) { S.stun -= dt; if (Math.random() < 0.4) burst(W / 2, groundY - 18 * u, 1, ['#ffe066', '#ffffff'], 140, 0.3); }
+      S.elapsed += dt;
+      S.sinceShot += dt;
+      if (!S.reloading && S.ammo < CAP && S.powerT <= 0 && S.stun <= 0 && S.sinceShot > 1) {
+        S.autoT += dt;
+        if (S.autoT >= AUTO_TIME) { S.autoT = 0; S.ammo++; sfx.load(); }
+      } else S.autoT = 0;
       if (S.reloading) {
         S.reloadT += dt;
         if (S.reloadT >= LOAD_TIME) {
@@ -666,25 +691,18 @@
           if (S[P.key] <= 0) { S[P.key] = 0; sfx.powerEnd(); addText(W / 2, H * 0.3, `${P.label} over`, '#9aa4c8', 14); }
         }
       }
-      // spawning
-      if (!S.between) {
-        S.bonusT -= dt;
-        if (S.bonusT <= 0) { spawnBonus(); S.bonusT = 18 + Math.random() * 12; }
-        if (S.toSpawn > 0) {
-          S.spawnT -= S.slowT > 0 ? dt * 0.5 : dt;
-          if (S.spawnT <= 0) {
-            spawnEnemy(); S.toSpawn--;
-            if (S.wave >= 3 && S.toSpawn > 0 && Math.random() < 0.22) { spawnEnemy(); S.toSpawn--; }
-            const interval = Math.max(0.55, 2.1 - S.wave * 0.14);
-            S.spawnT = interval * (0.6 + Math.random() * 0.8);
-          }
-        } else if (!S.enemies.some((e) => isHostile(e) && !e.dead)) {
-          waveClear();
-        }
-      } else {
-        S.interT -= dt;
-        if (S.interT <= 0) startWave();
+      // spawning: one steady stream that slowly gets heavier
+      if (S.ms < MILESTONES.length && S.elapsed >= MILESTONES[S.ms][0]) { banner(MILESTONES[S.ms][1], MILESTONES[S.ms][2]); S.ms++; }
+      S.bonusT -= dt;
+      if (S.bonusT <= 0) { spawnBonus(); S.bonusT = 18 + Math.random() * 12; }
+      S.spawnT -= S.slowT > 0 ? dt * 0.5 : dt;
+      if (S.spawnT <= 0) {
+        const d = prog();
+        spawnEnemy();
+        if (d > 0.55 && Math.random() < 0.18) spawnEnemy();
+        S.spawnT = (2.6 - 1.65 * d) * (0.7 + Math.random() * 0.6);
       }
+      if (S.elapsed >= NIGHT) dawn();
     }
     S.recoil = Math.max(0, S.recoil - dt * 6);
     S.emptyFlash = Math.max(0, S.emptyFlash - dt * 2);
@@ -760,11 +778,12 @@
 
     // smoke from ruins
     for (const b of S.buildings) {
-      if (b.alive) continue;
+      if (b.alive && b.hp > 1) continue;
       b.smokeT -= dt;
       if (b.smokeT <= 0) {
-        b.smokeT = 0.12 + Math.random() * 0.1;
-        S.parts.push({ x: b.f * W + (Math.random() - 0.5) * 30 * u, y: groundY - 8 * u, vx: (Math.random() - 0.3) * 12 * u, vy: -(25 + Math.random() * 20) * u, life: 2.4, t: 0, color: 'smoke', size: (5 + Math.random() * 5) * u, grav: 0 });
+        const cracked = b.alive;
+        b.smokeT = cracked ? 0.35 + Math.random() * 0.25 : 0.12 + Math.random() * 0.1;
+        S.parts.push({ x: b.f * W + (Math.random() - 0.5) * (cracked ? 16 : 30) * u, y: cracked ? bRect(b).y : groundY - 8 * u, vx: (Math.random() - 0.3) * 12 * u, vy: -(25 + Math.random() * 20) * u, life: 2.4, t: 0, color: 'smoke', size: (5 + Math.random() * 5) * u, grav: 0 });
       }
     }
     for (const p of S.parts) { p.t += dt; p.vy += p.grav * dt; p.x += p.vx * dt; p.y += p.vy * dt; if (p.color !== 'smoke') { p.vx *= 0.985; } }
@@ -779,20 +798,30 @@
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     ctx.direction = 'ltr';
     // sky
+    const d = prog(), e = Math.pow(d, 1.6);
     const g = ctx.createLinearGradient(0, 0, 0, groundY);
-    g.addColorStop(0, '#070a19'); g.addColorStop(0.65, '#121a3a'); g.addColorStop(1, '#2a2348');
+    g.addColorStop(0, mix('#070a19', '#45659f', e)); g.addColorStop(0.65, mix('#121a3a', '#a07fa6', e)); g.addColorStop(1, mix('#2a2348', '#ffb27a', e));
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    if (d > 0.78) {
+      const k = (d - 0.78) / 0.22;
+      const sx = W * 0.2, sy = groundY + 30 * u - k * 150 * u, sr = 30 * u;
+      const sg = ctx.createRadialGradient(sx, sy, sr * 0.5, sx, sy, sr * 6);
+      sg.addColorStop(0, `rgba(255,200,120,${0.55 * k})`); sg.addColorStop(1, 'rgba(255,200,120,0)');
+      ctx.fillStyle = sg; ctx.fillRect(0, 0, W, groundY);
+      ctx.fillStyle = '#ffd38a'; ctx.beginPath(); ctx.arc(sx, sy, sr, 0, Math.PI * 2); ctx.fill();
+    }
 
     ctx.save();
     if (S.shake > 0 && !reduceMotion) ctx.translate((Math.random() - 0.5) * S.shake * 10 * u, (Math.random() - 0.5) * S.shake * 10 * u);
 
     for (const s of stars) {
-      ctx.globalAlpha = 0.35 + 0.35 * Math.sin(S.time * 1.3 + s.p);
+      ctx.globalAlpha = (0.35 + 0.35 * Math.sin(S.time * 1.3 + s.p)) * (1 - e);
       ctx.fillStyle = '#dfe6ff'; ctx.fillRect(s.x, s.y, s.r, s.r);
     }
     ctx.globalAlpha = 1;
     // moon
-    const mx = W * 0.82, my = H * 0.16, mr = 26 * u;
+    const mx = W * (0.82 + 0.08 * d), my = H * 0.16 + d * (groundY - H * 0.16) * 0.85, mr = 26 * u;
+    ctx.globalAlpha = 1 - 0.5 * e;
     const mg = ctx.createRadialGradient(mx, my, mr * 0.2, mx, my, mr * 3);
     mg.addColorStop(0, 'rgba(255,236,190,0.18)'); mg.addColorStop(1, 'rgba(255,236,190,0)');
     ctx.fillStyle = mg; ctx.fillRect(mx - mr * 3, my - mr * 3, mr * 6, mr * 6);
@@ -800,9 +829,10 @@
     ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.arc(mx + mr * 0.45, my - mr * 0.2, mr * 0.92, 0, Math.PI * 2, true); ctx.clip('evenodd');
     ctx.fillStyle = '#f3e6c4'; ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
+    ctx.globalAlpha = 1;
 
     // distant skyline
-    ctx.fillStyle = '#1a1d3c';
+    ctx.fillStyle = mix('#1a1d3c', '#4a4470', e);
     for (const s of skyline) ctx.fillRect(s.x, groundY - s.h, s.w - 2 * u, s.h);
 
     // ground
@@ -826,6 +856,11 @@
     drawCrosshair();
   }
 
+  function mix(a, b, t) {
+    const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+    const ch = (sh) => Math.round(((pa >> sh) & 255) + ((((pb >> sh) & 255) - ((pa >> sh) & 255)) * t));
+    return `rgb(${ch(16)},${ch(8)},${ch(0)})`;
+  }
   function rand(seed) { const x = Math.sin(seed) * 43758.5453; return x - Math.floor(x); }
   function drawBuildings() {
     for (const b of S.buildings) {
@@ -836,13 +871,20 @@
         // antenna
         ctx.fillStyle = '#3a4373'; ctx.fillRect(r.x + r.w * 0.7, r.y - 10 * u, 2 * u, 10 * u);
         if (Math.sin(S.time * 3 + b.seed) > 0.6) { ctx.fillStyle = '#ff5a3c'; ctx.fillRect(r.x + r.w * 0.7 - 1 * u, r.y - 12 * u, 4 * u, 3 * u); }
+        b.cracked = b.hp < 2;
         // windows
         const cols = 3, rows = Math.floor(r.h / (12 * u));
         const ww = 6 * u, wh = 6 * u, gx = (r.w - cols * ww) / (cols + 1);
         for (let row = 0; row < rows; row++) for (let c = 0; c < cols; c++) {
-          const lit = rand(b.seed + row * 13 + c * 7) > 0.42;
+          const lit = rand(b.seed + row * 13 + c * 7) > (b.hp < 2 ? 0.75 : 0.42);
           ctx.fillStyle = lit ? 'rgba(255,207,110,0.85)' : 'rgba(80,90,140,0.5)';
           ctx.fillRect(r.x + gx + c * (ww + gx), r.y + 8 * u + row * 12 * u, ww, wh);
+        }
+        if (b.cracked) {
+          ctx.strokeStyle = '#0c1024'; ctx.lineWidth = 2 * u; ctx.lineJoin = 'round';
+          ctx.beginPath(); ctx.moveTo(r.x + r.w * 0.6, r.y + 4 * u); ctx.lineTo(r.x + r.w * 0.42, r.y + r.h * 0.3); ctx.lineTo(r.x + r.w * 0.58, r.y + r.h * 0.5); ctx.lineTo(r.x + r.w * 0.38, r.y + r.h * 0.75); ctx.stroke();
+          ctx.fillStyle = `rgba(255,120,50,${0.5 + 0.3 * Math.sin(S.time * 7 + b.seed)})`;
+          ctx.fillRect(r.x + r.w * 0.7, r.y + 7 * u, 3 * u, 3 * u);
         }
       } else {
         ctx.fillStyle = '#1b2042';
@@ -1071,6 +1113,11 @@
       if (i < S.ammo) {
         ctx.fillStyle = '#ffc857'; roundRect(x, y, sw, sh, 3 * u); ctx.fill();
         ctx.fillStyle = '#b07a1e'; ctx.fillRect(x, y + sh - 5 * u, sw, 5 * u);
+      } else if (i === S.ammo && !S.reloading && S.autoT > 0) {
+        const f = S.autoT / AUTO_TIME;
+        ctx.save(); roundRect(x, y, sw, sh, 3 * u); ctx.clip();
+        ctx.fillStyle = 'rgba(255,200,87,0.35)'; ctx.fillRect(x, y + sh * (1 - f), sw, sh * f);
+        ctx.restore();
       } else if (i === S.ammo && S.reloading) {
         const f = S.reloadT / LOAD_TIME;
         ctx.save(); roundRect(x, y, sw, sh, 3 * u); ctx.clip();
@@ -1239,7 +1286,7 @@
   function setText(id, v) { if (hudCache[id] !== v) { hudCache[id] = v; document.getElementById(id).textContent = v; } }
   function hud() {
     setText('score', fmt(S.score));
-    setText('wave', S.wave ? String(S.wave) : '–');
+    setText('dawn', S.mode === 'won' ? 'Sunrise' : clock(NIGHT - S.elapsed));
     setText('best', fmt(Math.max(best, S.score)));
     const rb = $('#reloadBtn');
     rb.classList.toggle('urgent', S.mode === 'play' && S.ammo === 0 && !S.reloading && S.stun <= 0);
