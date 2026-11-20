@@ -53,21 +53,24 @@
   .chip:hover { border-color: var(--tracer); }
   button:focus-visible { outline: 2px solid var(--tracer); outline-offset: 2px; }
 
-  #reloadBtn {
+  .load-btn {
     position: fixed;
-    right: max(14px, env(safe-area-inset-right, 0px));
-    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-    width: 64px; height: 64px; border-radius: 50%;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    width: 84px; height: 84px; border-radius: 50%;
     background: radial-gradient(circle at 50% 35%, #3a3220, #1a1710);
     border: 2px solid var(--tracer); color: var(--tracer);
-    font: 800 14px var(--font-ui);
+    font: 800 17px var(--font-ui);
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
     cursor: pointer; touch-action: none;
   }
-  #reloadBtn small { font-size: 10px; font-weight: 600; color: var(--muted); }
-  #reloadBtn.urgent { animation: pulse 0.6s ease-in-out infinite alternate; }
-  #reloadBtn.busy { opacity: 0.6; }
-  #reloadBtn.inf { opacity: 0.35; pointer-events: none; }
+  .load-btn::before { content: ""; position: absolute; inset: -16px; border-radius: 50%; } /* larger invisible touch area */
+  .load-btn:active { transform: scale(0.94); }
+  #reloadR { right: max(14px, env(safe-area-inset-right, 0px)); }
+  #reloadL { left: max(14px, env(safe-area-inset-left, 0px)); }
+  .load-btn small { font-size: 10px; font-weight: 600; color: var(--muted); }
+  .load-btn.urgent { animation: pulse 0.6s ease-in-out infinite alternate; }
+  .load-btn.busy { opacity: 0.6; }
+  .load-btn.inf { opacity: 0.35; pointer-events: none; }
   @keyframes pulse { from { box-shadow: 0 0 0 0 rgba(255, 200, 87, 0.0); } to { box-shadow: 0 0 0 10px rgba(255, 200, 87, 0.35); } }
 
   .overlay {
@@ -169,7 +172,7 @@
     #hud { gap: 14px; }
   }
   @media (prefers-reduced-motion: reduce) {
-    #reloadBtn.urgent { animation: none; box-shadow: 0 0 0 4px rgba(255, 200, 87, 0.4); }
+    .load-btn.urgent { animation: none; box-shadow: 0 0 0 4px rgba(255, 200, 87, 0.4); }
     #banner { transition: none; }
     .mag i { animation: none; background-size: 100% 100%; }
   }
@@ -187,7 +190,8 @@
   </div>
 </div>
 
-<button id="reloadBtn" type="button" aria-label="Reload the cannon"><span>LOAD</span><small>R</small></button>
+<button class="load-btn" id="reloadL" type="button" aria-label="Load one shell"><span>LOAD</span><small>R</small></button>
+<button class="load-btn" id="reloadR" type="button" aria-label="Load one shell"><span>LOAD</span><small>R</small></button>
 
 <div id="banner"><div class="t" id="bannerT"></div><div class="s" id="bannerS"></div></div>
 
@@ -218,7 +222,7 @@
       </div>
       <div class="ctrl">
         <div class="keys"><kbd>R</kbd><kbd>Space</kbd><kbd>Right-click</kbd><kbd>LOAD</kbd></div>
-        <div><b>Reload</b><span>Every press loads one shell instantly, so tap fast to fill all 8. When you hold fire, the cannon also loads itself.</span>
+        <div><b>Reload</b><span>Every press loads one shell instantly, so tap fast to fill all 8. There is a LOAD button on each side of the screen, and tapping the ground strip at the bottom loads too. When you hold fire, the cannon also loads itself.</span>
           <div class="mag" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
       </div>
       <div class="ctrl">
@@ -345,7 +349,7 @@
     W = cv.clientWidth; H = cv.clientHeight;
     cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
     u = Math.max(0.62, Math.min(H / 720, W / 520, 1.4));
-    groundY = H - (finePointer ? 74 : 92) * u;
+    groundY = H - (finePointer ? 74 : 112) * u;
     if (!S.aimX) { S.aimX = W / 2; S.aimY = H * 0.4; }
     stars = [];
     const n = Math.round((W * H) / 5200);
@@ -1294,15 +1298,16 @@
   const fmt = (n) => n.toLocaleString('en-US');
   const hudCache = {};
   function setText(id, v) { if (hudCache[id] !== v) { hudCache[id] = v; document.getElementById(id).textContent = v; } }
+  const loadBtns = [...document.querySelectorAll('.load-btn')];
   function hud() {
     setText('score', fmt(S.score));
     setText('dawn', S.mode === 'won' ? 'Sunrise' : clock(NIGHT - S.elapsed));
     setText('best', fmt(Math.max(best, S.score)));
-    const rb = $('#reloadBtn');
-    rb.classList.toggle('urgent', S.mode === 'play' && S.ammo === 0 && !S.reloading && S.stun <= 0);
-    rb.classList.toggle('busy', S.reloading);
-    rb.classList.toggle('inf', S.powerT > 0);
-    rb.hidden = S.mode === 'menu' && !$('#startOv').hidden;
+    for (const rb of loadBtns) {
+      rb.classList.toggle('urgent', S.mode === 'play' && S.ammo === 0 && S.stun <= 0);
+      rb.classList.toggle('inf', S.powerT > 0);
+      rb.hidden = S.mode === 'menu' && !$('#startOv').hidden;
+    }
   }
 
   // ---------- loop ----------
@@ -1327,11 +1332,14 @@
     pointerIn = ev.pointerType === 'mouse';
     if (ev.button === 2) { startReload(); return; }
     const p = localPos(ev);
+    if (p.y > groundY) { startReload(); return; } // the ground strip loads instead of firing
     fire(p.x, p.y);
   });
   cv.addEventListener('contextmenu', (ev) => ev.preventDefault());
-  $('#reloadBtn').addEventListener('pointerdown', (ev) => { ev.preventDefault(); ev.stopPropagation(); startReload(); });
-  $('#reloadBtn').addEventListener('click', (ev) => { if (ev.detail === 0) startReload(); });
+  for (const rb of document.querySelectorAll('.load-btn')) {
+    rb.addEventListener('pointerdown', (ev) => { ev.preventDefault(); ev.stopPropagation(); startReload(); });
+    rb.addEventListener('click', (ev) => { if (ev.detail === 0) startReload(); });
+  }
   const steps = [...document.querySelectorAll('#startOv .step')];
   const dots = [...document.querySelectorAll('#startOv .dots i')];
   let step = 0;
