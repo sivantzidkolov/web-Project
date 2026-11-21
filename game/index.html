@@ -243,9 +243,9 @@
         <div class="threat"><canvas class="demo" data-demo="drone"></canvas>
           <div class="info"><div class="t-head"><b>Drone</b><span class="pts">+150</span></div><span class="tag">After 0:30</span><p>Cruises across the sky, then dives onto its target.</p></div></div>
         <div class="threat"><canvas class="demo" data-demo="fast"></canvas>
-          <div class="info"><div class="t-head"><b>Fast missile</b><span class="pts">+150</span></div><span class="tag">After 1:00</span><p>Almost twice as fast. Lead it more.</p></div></div>
+          <div class="info"><div class="t-head"><b>Fast missile</b><span class="pts">+150</span></div><span class="tag">After 1:00</span><p>Red, with a flame trail. More than twice as fast, so aim well ahead of it.</p></div></div>
         <div class="threat"><canvas class="demo" data-demo="mirv"></canvas>
-          <div class="info"><div class="t-head"><b>Splitter</b><span class="pts">+200</span></div><span class="tag">After 1:40</span><p>Breaks into three missiles a third of the way down. Hit it high.</p></div></div>
+          <div class="info"><div class="t-head"><b>Splitter</b><span class="pts">+200</span></div><span class="tag">After 1:40</span><p>Purple, with three warheads on its nose. Splits into three a third of the way down, so hit it high.</p></div></div>
         <div class="threat friend"><canvas class="demo" data-demo="bird"></canvas>
           <div class="info"><div class="t-head"><b>Birds</b><span class="pts bad">−50</span></div><span class="tag bad">Don’t shoot</span><p>Harmless. A shell that hits a bird costs you points, so watch your line of fire.</p></div></div>
       </div>
@@ -445,7 +445,7 @@
       return;
     }
     let sp = baseSpeed();
-    if (type === 'fast') sp *= 1.6;
+    if (type === 'fast') sp *= 2.1;
     if (type === 'mirv') sp *= 0.85;
     launch(type, W * (0.04 + Math.random() * 0.92), -15 * u, pickTarget(S.elapsed >= 45), sp);
   }
@@ -766,7 +766,7 @@
       if (e.trailT <= 0) { e.trail.push({ x: e.x, y: e.y }); if (e.trail.length > 70) e.trail.shift(); e.trailT = 0.04; }
       if (e.type === 'mirv' && e.y > H * 0.33) {
         e.dead = true;
-        burst(e.x, e.y, 12, ['#ffe066', '#ffffff'], 120, 0.4);
+        burst(e.x, e.y, 16, ['#c77dff', '#f0d8ff', '#ffffff'], 120, 0.4);
         const sp = Math.hypot(e.vx, e.vy) * 1.2;
         for (let i = 0; i < 3; i++) launch('child', e.x, e.y, pickTarget(false), sp, e.trail.slice(-20));
         continue;
@@ -918,13 +918,13 @@
 
   const COLORS = {
     missile: { head: '#ffb347', trail: '255,179,71' },
-    child: { head: '#ffd27a', trail: '255,210,122' },
-    fast: { head: '#ff5a3c', trail: '255,90,60' },
-    mirv: { head: '#ffe066', trail: '255,224,102' },
+    child: { head: '#e6b8ff', trail: '224,176,255' },
+    fast: { head: '#ff4a2c', trail: '255,80,50' },
+    mirv: { head: '#c77dff', trail: '199,125,255' },
   };
-  function drawTrail(tr, x, y, rgb) {
+  function drawTrail(tr, x, y, rgb, width = 2) {
     if (!tr.length) return;
-    ctx.lineWidth = 2 * u; ctx.lineCap = 'round';
+    ctx.lineWidth = width * u; ctx.lineCap = 'round';
     const pts = tr.concat([{ x, y }]);
     for (let i = 1; i < pts.length; i++) {
       ctx.strokeStyle = `rgba(${rgb},${(i / pts.length) * 0.55})`;
@@ -937,6 +937,8 @@
       if (e.type === 'bird') { drawBird(e); return; }
       if (e.type === 'bonus') { drawBonus(e); return; }
       if (e.type === 'drone') { drawDrone(e); return; }
+      if (e.type === 'mirv') { drawSplitter(e); return; }
+      if (e.type === 'fast') { drawFast(e); return; }
       const c = COLORS[e.type];
       drawTrail(e.trail, e.x, e.y, c.trail);
       const ang = Math.atan2(e.vy, e.vx);
@@ -956,6 +958,70 @@
       ctx.fillStyle = '#fff3c8'; ctx.beginPath(); ctx.arc(-len - 2 * u, 0, 2.2 * u, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
     }
+  }
+  function drawSplitter(e) {
+    const c = COLORS.mirv, ang = Math.atan2(e.vy, e.vx);
+    drawTrail(e.trail, e.x, e.y, c.trail, 3);
+    // pulsing warning ring
+    const pulse = 0.5 + 0.5 * Math.sin(e.t * 9);
+    ctx.save();
+    ctx.strokeStyle = `rgba(${c.trail},${0.35 + 0.45 * pulse})`; ctx.lineWidth = 1.6 * u;
+    ctx.setLineDash([4 * u, 4 * u]); ctx.lineDashOffset = -e.t * 30 * u;
+    ctx.beginPath(); ctx.arc(e.x, e.y, (17 + 3 * pulse) * u, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+    const gl = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, 18 * u);
+    gl.addColorStop(0, `rgba(${c.trail},0.5)`); gl.addColorStop(1, `rgba(${c.trail},0)`);
+    ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(e.x, e.y, 18 * u, 0, Math.PI * 2); ctx.fill();
+    ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(ang);
+    const len = 18 * u, wid = 10 * u;
+    // fins
+    ctx.fillStyle = '#7b5aa6';
+    ctx.beginPath(); ctx.moveTo(-len, -wid / 2); ctx.lineTo(-len - 4 * u, -wid); ctx.lineTo(-len + 5 * u, -wid / 2); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-len, wid / 2); ctx.lineTo(-len - 4 * u, wid); ctx.lineTo(-len + 5 * u, wid / 2); ctx.closePath(); ctx.fill();
+    // fat body with bands
+    ctx.fillStyle = '#5b3d86'; roundRect(-len, -wid / 2, len, wid, 3 * u); ctx.fill();
+    ctx.fillStyle = c.head; ctx.fillRect(-len * 0.7, -wid / 2, 2 * u, wid); ctx.fillRect(-len * 0.4, -wid / 2, 2 * u, wid);
+    // three warheads on the nose
+    ctx.fillStyle = '#f0d8ff';
+    for (const [oy, L] of [[-3.4, 6], [0, 8], [3.4, 6]]) {
+      ctx.beginPath(); ctx.moveTo(0, (oy - 1.7) * u); ctx.lineTo(L * u, oy * u); ctx.lineTo(0, (oy + 1.7) * u); ctx.closePath(); ctx.fill();
+    }
+    ctx.fillStyle = '#fff3c8'; ctx.beginPath(); ctx.arc(-len - 2 * u, 0, 2.6 * u, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    // ×3 label
+    ctx.font = `800 ${Math.round(11 * u + 2)}px ${FONT}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = c.head; ctx.fillText('×3', e.x + 20 * u, e.y - 14 * u);
+  }
+  function drawFast(e) {
+    const c = COLORS.fast, ang = Math.atan2(e.vy, e.vx);
+    drawTrail(e.trail, e.x, e.y, c.trail, 3);
+    const gl = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, 18 * u);
+    gl.addColorStop(0, 'rgba(255,90,50,0.6)'); gl.addColorStop(1, 'rgba(255,90,50,0)');
+    ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(e.x, e.y, 18 * u, 0, Math.PI * 2); ctx.fill();
+    ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(ang);
+    const len = 17 * u, wid = 3.6 * u;
+    // speed streaks
+    ctx.lineCap = 'round';
+    for (const [oy, l, a] of [[-6, 30, 0.45], [6, 26, 0.45], [-11, 18, 0.25], [11, 20, 0.25]]) {
+      const g = ctx.createLinearGradient(-len, 0, -len - l * u, 0);
+      g.addColorStop(0, `rgba(255,220,200,${a})`); g.addColorStop(1, 'rgba(255,220,200,0)');
+      ctx.strokeStyle = g; ctx.lineWidth = 1.3 * u;
+      ctx.beginPath(); ctx.moveTo(-len + 4 * u, oy * u); ctx.lineTo(-len - l * u, oy * u); ctx.stroke();
+    }
+    // flickering exhaust flame
+    const fl = (20 + Math.random() * 12) * u;
+    const fg = ctx.createLinearGradient(-len, 0, -len - fl, 0);
+    fg.addColorStop(0, '#ffffff'); fg.addColorStop(0.25, '#ffd27a'); fg.addColorStop(0.6, 'rgba(255,90,40,0.8)'); fg.addColorStop(1, 'rgba(255,60,30,0)');
+    ctx.fillStyle = fg;
+    ctx.beginPath(); ctx.moveTo(-len, -wid * 0.9); ctx.quadraticCurveTo(-len - fl * 0.5, -wid * 0.7, -len - fl, 0); ctx.quadraticCurveTo(-len - fl * 0.5, wid * 0.7, -len, wid * 0.9); ctx.closePath(); ctx.fill();
+    // slim body, swept fins, red nose
+    ctx.fillStyle = '#d6dbef'; ctx.fillRect(-len, -wid / 2, len, wid);
+    ctx.fillStyle = '#ff4a2c'; ctx.fillRect(-len * 0.55, -wid / 2, 2 * u, wid);
+    ctx.beginPath(); ctx.moveTo(0, -wid / 2); ctx.lineTo(wid * 2.2, 0); ctx.lineTo(0, wid / 2); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#9a3a30';
+    ctx.beginPath(); ctx.moveTo(-len + 2 * u, -wid / 2); ctx.lineTo(-len - 4 * u, -wid * 1.6); ctx.lineTo(-len + 7 * u, -wid / 2); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-len + 2 * u, wid / 2); ctx.lineTo(-len - 4 * u, wid * 1.6); ctx.lineTo(-len + 7 * u, wid / 2); ctx.closePath(); ctx.fill();
+    ctx.restore();
   }
   function drawBonus(e) {
     const P = POWERS[e.kind];
@@ -1200,7 +1266,7 @@
       drawEntity({ type: 'missile', ...f(s), trail: trailOf(f, s, 1.6) });
     },
     fast(w, h, t) {
-      const T = 1.3, s = t % T, f = lin(w * 0.8, -12, w * 0.3, h + 12, T);
+      const T = 1.0, s = t % T, f = lin(w * 0.85, -20, w * 0.25, h + 20, T);
       drawEntity({ type: 'fast', ...f(s), trail: trailOf(f, s, 1) });
     },
     mirv(w, h, t) {
