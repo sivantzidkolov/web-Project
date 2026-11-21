@@ -90,22 +90,22 @@
   .card h1 span { color: var(--tracer); }
   .card h2 { margin: 0; font-size: 30px; font-weight: 800; }
   .card p { margin: 0; color: #c8cee6; line-height: 1.55; font-size: 15px; }
-  .brief { max-width: 600px; gap: 16px; }
+  .brief { max-width: 560px; gap: 14px; height: min(560px, 100%); overflow: hidden; } /* fixed height keeps Next in the same spot */
   .brief-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .step-lbl { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
   .link { background: none; border: 0; color: var(--muted); font: 600 13px var(--font-ui); cursor: pointer; padding: 4px 0; text-decoration: underline; text-underline-offset: 3px; }
   .link:hover { color: var(--ink); }
-  .step { display: flex; flex-direction: column; gap: 14px; }
+  .step { display: flex; flex-direction: column; gap: 14px; flex: 1; min-height: 0; overflow-y: auto; }
   .step h2 { font-size: 26px; }
   .card p.lead { font-size: 16px; color: var(--ink); }
   .card p.note { font-size: 13px; color: var(--muted); }
-  .demo { display: block; width: 100%; height: 76px; border-radius: 8px; background: linear-gradient(180deg, #080c20, #1b2046); }
+  .demo { display: block; width: 100%; height: 64px; border-radius: 8px; background: linear-gradient(180deg, #080c20, #1b2046); }
   .demo.wide { height: 170px; }
   .goals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
   .goals div { background: rgba(255, 255, 255, 0.04); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; }
   .goals b { font-size: 26px; font-weight: 800; color: var(--tracer); line-height: 1; font-variant-numeric: tabular-nums; }
   .goals span { font-size: 13px; color: #c8cee6; line-height: 1.3; }
-  .ctrl { display: grid; grid-template-columns: 160px 1fr; gap: 12px; align-items: start; padding-top: 12px; border-top: 1px solid var(--line); }
+  .ctrl { display: grid; grid-template-columns: 120px 1fr; gap: 12px; align-items: start; padding-top: 12px; border-top: 1px solid var(--line); }
   .ctrl:first-of-type { border-top: 0; padding-top: 0; }
   .keys { display: flex; flex-wrap: wrap; gap: 6px; }
   kbd { font: 700 12px var(--font-ui); color: var(--ink); background: #1e2650; border: 1px solid #3a4580; border-bottom-width: 3px; border-radius: 6px; padding: 3px 8px; }
@@ -204,61 +204,55 @@
 
     <section class="step">
       <h1>Night <span>Intercept</span></h1>
-      <p class="lead">The city is under attack tonight. You command the last cannon. Hold out until the sun comes up.</p>
+      <p class="lead">Protect the city until sunrise.</p>
       <canvas class="demo wide" data-demo="intercept" aria-label="Animation: the cannon shoots down an incoming missile"></canvas>
       <div class="goals">
-        <div><b>3:00</b><span>minutes until sunrise</span></div>
-        <div><b>6</b><span>buildings, each survives one hit</span></div>
-        <div><b>★★★</b><span>at dawn if all six are still standing</span></div>
+        <div><b>3:00</b><span>until sunrise</span></div>
+        <div><b>6</b><span>buildings, 2 hits each</span></div>
+        <div><b>★★★</b><span>keep all six</span></div>
       </div>
-      <p class="note">The sky gets lighter as dawn comes closer, and the attack slowly gets heavier. If all six buildings fall before sunrise, the night is lost.</p>
     </section>
 
     <section class="step" hidden>
       <h2>Your cannon</h2>
       <div class="ctrl">
         <div class="keys"><kbd>Click</kbd><kbd>Tap</kbd></div>
-        <div><b>Fire</b><span>The shell flies in a straight line through the point you click, all the way to the edge of the screen, and bursts on the first thing it touches. Aim ahead of moving targets.</span></div>
+        <div><b>Fire</b><span>Shoots in a straight line through where you click.</span></div>
       </div>
       <div class="ctrl">
-        <div class="keys"><kbd>R</kbd><kbd>Space</kbd><kbd>Right-click</kbd><kbd>LOAD</kbd></div>
-        <div><b>Reload</b><span>Every press loads one shell instantly, so tap fast to fill all 8. There is a LOAD button on each side of the screen, and tapping the ground strip at the bottom loads too. When you hold fire, the cannon also loads itself.</span>
+        <div class="keys"><kbd>R</kbd><kbd>LOAD</kbd></div>
+        <div><b>Load</b><span>Each press adds one shell. Up to 8.</span>
           <div class="mag" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
       </div>
       <div class="ctrl">
         <div class="keys"><kbd>Combo</kbd></div>
-        <div><b>Big blasts</b><span>Your shells burst wide, and every threat you destroy explodes too. Catch several at once for DOUBLE, TRIPLE and MEGA bonuses: the second kill scores ×1.5, the third ×2, and so on.</span></div>
-      </div>
-      <div class="ctrl">
-        <div class="keys"><kbd>P</kbd><kbd>Esc</kbd></div>
-        <div><b>Pause</b><span>Stops the game any time.</span></div>
+        <div><b>Chain</b><span>Hit two or more in one blast for bonus points.</span></div>
       </div>
     </section>
 
     <section class="step" hidden>
-      <h2>Know your threats</h2>
+      <h2>Threats</h2>
       <div class="threats">
         <div class="threat"><canvas class="demo" data-demo="missile"></canvas>
-          <div class="info"><div class="t-head"><b>Missile</b><span class="pts">+100</span></div><span class="tag">From the start</span><p>Falls in a straight line toward a building.</p></div></div>
+          <div class="info"><div class="t-head"><b>Missile</b><span class="pts">+100</span></div><p>Falls toward a building.</p></div></div>
         <div class="threat"><canvas class="demo" data-demo="drone"></canvas>
-          <div class="info"><div class="t-head"><b>Drone</b><span class="pts">+150</span></div><span class="tag">After 0:30</span><p>Cruises across the sky, then dives onto its target.</p></div></div>
+          <div class="info"><div class="t-head"><b>Drone</b><span class="pts">+150</span></div><p>Flies across, then dives.</p></div></div>
         <div class="threat"><canvas class="demo" data-demo="fast"></canvas>
-          <div class="info"><div class="t-head"><b>Fast missile</b><span class="pts">+150</span></div><span class="tag">After 1:00</span><p>Red, with a flame trail. More than twice as fast, so aim well ahead of it.</p></div></div>
+          <div class="info"><div class="t-head"><b>Fast</b><span class="pts">+150</span></div><p>Red flame. Aim far ahead.</p></div></div>
         <div class="threat"><canvas class="demo" data-demo="mirv"></canvas>
-          <div class="info"><div class="t-head"><b>Splitter</b><span class="pts">+200</span></div><span class="tag">After 1:40</span><p>Purple, with three warheads on its nose. Splits into three a third of the way down, so hit it high.</p></div></div>
+          <div class="info"><div class="t-head"><b>Splitter</b><span class="pts">+200</span></div><p>Purple ×3. Hit it early.</p></div></div>
         <div class="threat friend"><canvas class="demo" data-demo="bird"></canvas>
-          <div class="info"><div class="t-head"><b>Birds</b><span class="pts bad">−50</span></div><span class="tag bad">Don’t shoot</span><p>Harmless. A shell that hits a bird costs you points, so watch your line of fire.</p></div></div>
+          <div class="info"><div class="t-head"><b>Birds</b><span class="pts bad">−50</span></div><p>Harmless. Don’t hit them.</p></div></div>
       </div>
-      <p class="note">Some missiles aim at the cannon itself. A hit empties your magazine and jams the cannon for 2 seconds.</p>
     </section>
 
     <section class="step" hidden>
       <h2>Bonus orbs</h2>
-      <p>Now and then a glowing orb streaks across the sky. Shoot it to gain its power and +250 points. They move fast, so be ready.</p>
+      <p>Shoot a glowing orb for +250 and a power-up.</p>
       <div class="bonuses">
-        <div class="bonus"><canvas class="demo" data-demo="bonus-ammo"></canvas><div><b>Unlimited ammo</b><span class="tag"> · 10 s</span><p>No reloading, and the cannon fires twice as fast.</p></div></div>
-        <div class="bonus"><canvas class="demo" data-demo="bonus-slow"></canvas><div><b>Slow motion</b><span class="tag"> · 8 s</span><p>Every threat drops to a third of its speed.</p></div></div>
-        <div class="bonus"><canvas class="demo" data-demo="bonus-shield"></canvas><div><b>City shield</b><span class="tag"> · 12 s</span><p>A dome covers the city and stops anything that hits it.</p></div></div>
+        <div class="bonus"><canvas class="demo" data-demo="bonus-ammo"></canvas><div><b>Unlimited ammo</b><span class="tag"> · 10 s</span><p>No loading, double fire rate.</p></div></div>
+        <div class="bonus"><canvas class="demo" data-demo="bonus-slow"></canvas><div><b>Slow motion</b><span class="tag"> · 8 s</span><p>Threats move at ⅓ speed.</p></div></div>
+        <div class="bonus"><canvas class="demo" data-demo="bonus-shield"></canvas><div><b>City shield</b><span class="tag"> · 12 s</span><p>A dome blocks every hit.</p></div></div>
       </div>
     </section>
 
