@@ -4,7 +4,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Rubik:wght@400;600;800&display=swap">
 <style>
   /* Layout: full-screen night sky canvas; HUD strip on top, cannon at bottom centre, overlays centred. Single dark look by choice. */
   :root {
@@ -16,6 +16,8 @@
     --tracer: #ffc857;
     --threat: #ff5a3c;
     --font-ui: "Rubik", "Segoe UI", "Arial Hebrew", system-ui, sans-serif;
+    --font-display: "Chakra Petch", "Rubik", "Segoe UI", system-ui, sans-serif;
+    --glass: rgba(12, 17, 38, 0.72);
     color-scheme: dark;
   }
   [hidden] { display: none !important; }
@@ -40,26 +42,34 @@
     padding-right: max(16px, env(safe-area-inset-right, 0px));
     pointer-events: none;
   }
-  .stat { display: flex; flex-direction: column; line-height: 1.1; }
-  .stat .lbl { font-size: 11px; letter-spacing: 0.06em; color: var(--muted); }
-  .stat .val { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
-  #score { color: var(--tracer); }
-  .hud-btns { margin-inline-start: auto; display: flex; gap: 8px; pointer-events: auto; }
-  .chip {
-    font: 600 13px var(--font-ui); color: var(--ink);
-    background: rgba(20, 27, 56, 0.7); border: 1px solid var(--line);
-    border-radius: 999px; padding: 6px 12px; cursor: pointer;
+  .score-box { display: flex; flex-direction: column; line-height: 1; gap: 4px; min-width: 84px; }
+  #score { font: 700 26px var(--font-display); color: var(--tracer); font-variant-numeric: tabular-nums; text-shadow: 0 0 14px rgba(255, 200, 87, 0.35); }
+  .best { font: 600 10px var(--font-display); letter-spacing: 0.18em; color: var(--muted); }
+  .best b { color: var(--ink); font-weight: 600; letter-spacing: 0.04em; }
+  .night-track { flex: 1; min-width: 0; max-width: 340px; margin-inline: auto; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; }
+  .night-track svg { width: 16px; height: 16px; display: block; }
+  .track { position: relative; height: 4px; border-radius: 2px; background: rgba(160, 175, 230, 0.16); }
+  #trackFill { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: 2px; background: linear-gradient(90deg, #6d7ccf, #c58ac0, #ffb27a); }
+  #trackDot { position: absolute; top: 50%; left: 0; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: #fff3d6; box-shadow: 0 0 10px 3px rgba(255, 210, 150, 0.7); }
+  #dawn { grid-column: 1 / -1; justify-self: center; font: 600 11px var(--font-display); letter-spacing: 0.16em; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .hud-btns { display: flex; gap: 8px; pointer-events: auto; }
+  .icon-btn {
+    width: 38px; height: 38px; display: grid; place-items: center; padding: 0; cursor: pointer;
+    color: var(--ink); background: var(--glass); border: 1px solid var(--line); border-radius: 10px;
   }
-  .chip:hover { border-color: var(--tracer); }
+  .icon-btn svg { width: 18px; height: 18px; }
+  .icon-btn:hover { border-color: var(--tracer); color: var(--tracer); }
+  #muteBtn .off { display: none; } #muteBtn.muted .on { display: none; } #muteBtn.muted .off { display: block; }
   button:focus-visible { outline: 2px solid var(--tracer); outline-offset: 2px; }
 
   .load-btn {
     position: fixed;
     bottom: calc(10px + env(safe-area-inset-bottom, 0px));
     width: 84px; height: 84px; border-radius: 50%;
-    background: radial-gradient(circle at 50% 35%, #3a3220, #1a1710);
-    border: 2px solid var(--tracer); color: var(--tracer);
-    font: 800 17px var(--font-ui);
+    background: radial-gradient(circle at 50% 30%, rgba(60, 50, 28, 0.9), rgba(14, 14, 24, 0.9));
+    border: 1.5px solid rgba(255, 200, 87, 0.75); color: var(--tracer);
+    box-shadow: inset 0 0 0 5px rgba(14, 14, 24, 0.9), inset 0 0 0 6px rgba(255, 200, 87, 0.25), 0 6px 18px rgba(0, 0, 0, 0.4);
+    font: 600 10px var(--font-display);
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
     cursor: pointer; touch-action: none;
   }
@@ -67,11 +77,13 @@
   .load-btn:active { transform: scale(0.94); }
   #reloadR { right: max(14px, env(safe-area-inset-right, 0px)); }
   #reloadL { left: max(14px, env(safe-area-inset-left, 0px)); }
-  .load-btn small { font-size: 10px; font-weight: 600; color: var(--muted); }
-  .load-btn.urgent { animation: pulse 0.6s ease-in-out infinite alternate; }
+  .load-btn svg { width: 22px; height: 36px; filter: drop-shadow(0 0 6px rgba(255, 200, 87, 0.5)); }
+  .load-btn small { position: absolute; bottom: 9px; font-size: 9px; letter-spacing: 0.1em; color: var(--muted); }
+  @media (pointer: coarse) { .load-btn small { display: none; } }
+  .load-btn.urgent { animation: pulse 0.6s ease-in-out infinite alternate; border-color: var(--threat); color: #ffd0c4; }
   .load-btn.busy { opacity: 0.6; }
-  .load-btn.inf { opacity: 0.35; pointer-events: none; }
-  @keyframes pulse { from { box-shadow: 0 0 0 0 rgba(255, 200, 87, 0.0); } to { box-shadow: 0 0 0 10px rgba(255, 200, 87, 0.35); } }
+  .load-btn.inf { opacity: 0.35; pointer-events: none; color: #7ff0d0; border-color: #7ff0d0; }
+  @keyframes pulse { from { box-shadow: inset 0 0 0 5px rgba(14, 14, 24, 0.9), 0 0 0 0 rgba(255, 90, 60, 0); } to { box-shadow: inset 0 0 0 5px rgba(14, 14, 24, 0.9), 0 0 0 12px rgba(255, 90, 60, 0.3); } }
 
   .overlay {
     position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
@@ -82,34 +94,42 @@
   }
   .card {
     width: 100%; max-width: 440px; max-height: 100%; overflow-y: auto;
-    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    --c: rgba(255, 200, 87, 0.85);
+    background:
+      linear-gradient(var(--c), var(--c)) top left / 16px 2px no-repeat, linear-gradient(var(--c), var(--c)) top left / 2px 16px no-repeat,
+      linear-gradient(var(--c), var(--c)) top right / 16px 2px no-repeat, linear-gradient(var(--c), var(--c)) top right / 2px 16px no-repeat,
+      linear-gradient(var(--c), var(--c)) bottom left / 16px 2px no-repeat, linear-gradient(var(--c), var(--c)) bottom left / 2px 16px no-repeat,
+      linear-gradient(var(--c), var(--c)) bottom right / 16px 2px no-repeat, linear-gradient(var(--c), var(--c)) bottom right / 2px 16px no-repeat,
+      linear-gradient(180deg, rgba(20, 27, 58, 0.9), rgba(10, 13, 30, 0.92));
+    border: 1px solid var(--line); border-radius: 3px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
     padding: 24px 22px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
     display: flex; flex-direction: column; gap: 14px;
   }
-  .card h1 { margin: 0; font-size: 40px; font-weight: 800; letter-spacing: -0.01em; line-height: 1; text-wrap: balance; }
+  .card h1 { margin: 0; font: 700 40px/1 var(--font-display); letter-spacing: 0.04em; text-transform: uppercase; text-wrap: balance; }
   .card h1 span { color: var(--tracer); }
-  .card h2 { margin: 0; font-size: 30px; font-weight: 800; }
+  .card h2 { margin: 0; font: 700 28px/1.1 var(--font-display); letter-spacing: 0.04em; text-transform: uppercase; }
   .card p { margin: 0; color: #c8cee6; line-height: 1.55; font-size: 15px; }
   .brief { max-width: 560px; gap: 14px; height: min(560px, 100%); overflow: hidden; } /* fixed height keeps Next in the same spot */
   .brief-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .step-lbl { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .step-lbl { font: 600 11px var(--font-display); letter-spacing: 0.22em; text-transform: uppercase; color: var(--tracer); }
   .link { background: none; border: 0; color: var(--muted); font: 600 13px var(--font-ui); cursor: pointer; padding: 4px 0; text-decoration: underline; text-underline-offset: 3px; }
   .link:hover { color: var(--ink); }
   .step { display: flex; flex-direction: column; gap: 14px; flex: 1; min-height: 0; overflow-y: auto; }
-  .step h2 { font-size: 26px; }
+  .step h2 { font-size: 24px; }
   .card p.lead { font-size: 16px; color: var(--ink); }
   .card p.note { font-size: 13px; color: var(--muted); }
-  .demo { display: block; width: 100%; height: 64px; border-radius: 8px; background: linear-gradient(180deg, #080c20, #1b2046); }
+  .demo { display: block; width: 100%; height: 64px; border-radius: 2px; background: linear-gradient(180deg, #080c20, #1b2046); }
   .demo.wide { height: 170px; }
   .goals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-  .goals div { background: rgba(255, 255, 255, 0.04); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; }
-  .goals b { font-size: 26px; font-weight: 800; color: var(--tracer); line-height: 1; font-variant-numeric: tabular-nums; }
+  .goals div { background: rgba(255, 255, 255, 0.035); border-left: 2px solid rgba(255, 200, 87, 0.5); border-radius: 0; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; }
+  .goals b { font: 700 26px var(--font-display); color: var(--tracer); line-height: 1; font-variant-numeric: tabular-nums; }
   .goals span { font-size: 13px; color: #c8cee6; line-height: 1.3; }
   .ctrl { display: grid; grid-template-columns: 120px 1fr; gap: 12px; align-items: start; padding-top: 12px; border-top: 1px solid var(--line); }
   .ctrl:first-of-type { border-top: 0; padding-top: 0; }
   .keys { display: flex; flex-wrap: wrap; gap: 6px; }
-  kbd { font: 700 12px var(--font-ui); color: var(--ink); background: #1e2650; border: 1px solid #3a4580; border-bottom-width: 3px; border-radius: 6px; padding: 3px 8px; }
-  .ctrl b { display: block; font-size: 15px; margin-bottom: 3px; }
+  kbd { font: 600 12px var(--font-display); letter-spacing: 0.06em; color: var(--ink); background: #1e2650; border: 1px solid #3a4580; border-bottom-width: 3px; border-radius: 6px; padding: 3px 8px; }
+  .ctrl b { display: block; font: 600 15px var(--font-display); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 3px; }
   .ctrl span { font-size: 14px; color: #c8cee6; line-height: 1.45; }
   .mag { display: flex; gap: 5px; margin-top: 10px; }
   .mag i { width: 9px; height: 20px; border-radius: 3px; border: 1px solid rgba(255, 200, 87, 0.5); background: linear-gradient(var(--tracer), var(--tracer)) bottom / 100% 0% no-repeat; animation: magfill 3.6s linear infinite; }
@@ -117,40 +137,44 @@
   .mag i:nth-child(5) { animation-delay: 1.2s; } .mag i:nth-child(6) { animation-delay: 1.5s; } .mag i:nth-child(7) { animation-delay: 1.8s; } .mag i:nth-child(8) { animation-delay: 2.1s; }
   @keyframes magfill { 0% { background-size: 100% 0%; } 8% { background-size: 100% 100%; } 88% { background-size: 100% 100%; } 89%, 100% { background-size: 100% 0%; } }
   .threats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  .threat { background: rgba(255, 255, 255, 0.04); border: 1px solid transparent; border-radius: 10px; padding: 8px 8px 10px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .threat { background: rgba(255, 255, 255, 0.035); border: 1px solid transparent; border-radius: 3px; padding: 8px 8px 10px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
   .threat.friend { grid-column: 1 / -1; display: grid; grid-template-columns: 130px 1fr; gap: 12px; align-items: center; border-color: rgba(255, 90, 60, 0.35); }
   .threat .info { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding-inline: 2px; }
   .t-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-  .t-head b { font-size: 15px; }
+  .t-head b { font: 600 15px var(--font-display); letter-spacing: 0.06em; text-transform: uppercase; }
   .tag { font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
   .tag.bad { color: var(--threat); }
   .card .threat p, .card .bonus p { font-size: 13px; line-height: 1.4; }
-  .pts { font: 800 13px var(--font-ui); color: var(--tracer); font-variant-numeric: tabular-nums; }
+  .pts { font: 700 14px var(--font-display); color: var(--tracer); font-variant-numeric: tabular-nums; }
   .pts.bad { color: var(--threat); }
   .bonuses { display: grid; gap: 10px; }
-  .bonus { display: grid; grid-template-columns: 76px 1fr; gap: 12px; align-items: center; background: rgba(255, 255, 255, 0.04); border-radius: 10px; padding: 8px; }
+  .bonus { display: grid; grid-template-columns: 76px 1fr; gap: 12px; align-items: center; background: rgba(255, 255, 255, 0.035); border-radius: 3px; padding: 8px; }
   .bonus .demo { height: 64px; }
-  .bonus b { font-size: 15px; }
+  .bonus b { font: 600 15px var(--font-display); letter-spacing: 0.06em; text-transform: uppercase; }
   .nav { display: flex; align-items: center; gap: 10px; }
   .dots { display: flex; gap: 6px; margin-inline-end: auto; }
-  .dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); transition: background 0.2s; }
+  .dots i { width: 14px; height: 3px; border-radius: 0; background: var(--line); transition: background 0.2s; }
   .dots i.on { background: var(--tracer); }
-  .secondary { font: 700 15px var(--font-ui); color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 10px; padding: 11px 16px; cursor: pointer; }
+  .secondary { font: 600 14px var(--font-display); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink); background: rgba(160, 175, 230, 0.1); border: 0; border-radius: 0; padding: 13px 16px; cursor: pointer;
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); }
+  .secondary:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--tracer); }
   .secondary:hover { border-color: var(--muted); }
   .nav .primary { min-width: 140px; }
-  .stars { font-size: 40px; letter-spacing: 6px; line-height: 1; color: var(--tracer); }
-  .stars .off { color: rgba(255, 200, 87, 0.2); }
+  .stars { font-size: 44px; letter-spacing: 8px; line-height: 1; color: var(--tracer); text-shadow: 0 0 18px rgba(255, 200, 87, 0.6); }
+  .stars .off { color: rgba(255, 200, 87, 0.16); text-shadow: none; }
   .row-btns { display: flex; gap: 10px; flex-wrap: wrap; }
   .row-btns .primary { flex: 1; }
   .primary {
-    font: 800 18px var(--font-ui); color: #1b1404; background: var(--tracer);
-    border: 0; border-radius: 10px; padding: 12px 18px; cursor: pointer;
+    font: 700 17px var(--font-display); letter-spacing: 0.12em; text-transform: uppercase; color: #1b1404;
+    background: linear-gradient(180deg, #ffd77e, #f2b33d); border: 0; border-radius: 0; padding: 13px 20px; cursor: pointer;
+    clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
   }
+  .primary:focus-visible { outline: none; box-shadow: inset 0 0 0 3px #1b1404; }
   .primary:hover { filter: brightness(1.08); }
   .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  .stats div { background: rgba(255, 255, 255, 0.04); border-radius: 8px; padding: 10px 12px; }
-  .stats .lbl { font-size: 12px; color: var(--muted); display: block; }
-  .stats .val { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .stats div { background: rgba(255, 255, 255, 0.035); border-left: 2px solid rgba(255, 200, 87, 0.5); border-radius: 0; padding: 10px 12px; }
+  .stats .lbl { font: 600 10px var(--font-display); letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); display: block; }
+  .stats .val { font: 700 24px var(--font-display); font-variant-numeric: tabular-nums; }
   .hint { font-size: 12px; color: var(--muted); }
 
   #banner {
@@ -158,8 +182,11 @@
     opacity: 0; transform: translateY(8px); transition: opacity 0.3s, transform 0.3s;
   }
   #banner.show { opacity: 1; transform: none; }
-  #banner .t { font-size: 44px; font-weight: 800; letter-spacing: 0.02em; text-shadow: 0 2px 18px rgba(0, 0, 0, 0.6); }
-  #banner .s { font-size: 16px; color: var(--tracer); margin-top: 4px; }
+  #banner .t { display: inline-flex; align-items: center; gap: 16px; font: 700 34px var(--font-display); letter-spacing: 0.14em; text-transform: uppercase; text-shadow: 0 2px 18px rgba(0, 0, 0, 0.6); }
+  #banner .t::before, #banner .t::after { content: ""; width: 40px; height: 1px; background: linear-gradient(90deg, transparent, var(--tracer)); }
+  #banner .t::after { transform: scaleX(-1); }
+  #banner .s { font: 600 13px var(--font-display); letter-spacing: 0.2em; text-transform: uppercase; color: var(--tracer); margin-top: 8px; }
+  @media (max-width: 480px) { #banner .t { font-size: 24px; gap: 10px; } #banner .t::before, #banner .t::after { width: 20px; } }
 
   @media (max-width: 480px) {
     .card h1 { font-size: 32px; }
@@ -168,8 +195,8 @@
     .threat.friend { grid-template-columns: 96px 1fr; }
     .demo.wide { height: 140px; }
     .nav .primary { min-width: 0; flex: 1; }
-    .stat .val { font-size: 18px; }
-    #hud { gap: 14px; }
+    #score { font-size: 22px; }
+    #hud { gap: 12px; }
   }
   @media (prefers-reduced-motion: reduce) {
     .load-btn.urgent { animation: none; box-shadow: 0 0 0 4px rgba(255, 200, 87, 0.4); }
@@ -181,17 +208,26 @@
 <canvas id="cv" aria-label="Game field"></canvas>
 
 <div id="hud">
-  <div class="stat"><span class="lbl">SCORE</span><span class="val" id="score">0</span></div>
-  <div class="stat"><span class="lbl">DAWN IN</span><span class="val" id="dawn">3:00</span></div>
-  <div class="stat"><span class="lbl">BEST</span><span class="val" id="best">0</span></div>
+  <div class="score-box"><span id="score">0</span><span class="best">BEST <b id="best">0</b></span></div>
+  <div class="night-track" aria-label="Time until dawn">
+    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10.5 2.2a6 6 0 1 0 3.3 9.6A5 5 0 0 1 10.5 2.2z" fill="#f3e6c4"/></svg>
+    <div class="track"><i id="trackFill"></i><i id="trackDot"></i></div>
+    <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3.4" fill="#ffc46e"/><g stroke="#ffc46e" stroke-width="1.4" stroke-linecap="round"><path d="M8 1.2v1.6M8 13.2v1.6M1.2 8h1.6M13.2 8h1.6M3.2 3.2l1.1 1.1M11.7 11.7l1.1 1.1M3.2 12.8l1.1-1.1M11.7 4.3l1.1-1.1"/></g></svg>
+    <span id="dawn">3:00</span>
+  </div>
   <div class="hud-btns">
-    <button class="chip" id="muteBtn" type="button">Sound: on</button>
-    <button class="chip" id="pauseBtn" type="button">Pause</button>
+    <button class="icon-btn" id="muteBtn" type="button" aria-label="Mute sound">
+      <svg class="on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z" fill="currentColor"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+      <svg class="off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z" fill="currentColor"/><path d="m16 9 6 6M22 9l-6 6"/></svg>
+    </button>
+    <button class="icon-btn" id="pauseBtn" type="button" aria-label="Pause">
+      <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+    </button>
   </div>
 </div>
 
-<button class="load-btn" id="reloadL" type="button" aria-label="Load one shell"><span>LOAD</span><small>R</small></button>
-<button class="load-btn" id="reloadR" type="button" aria-label="Load one shell"><span>LOAD</span><small>R</small></button>
+<button class="load-btn" id="reloadL" type="button" aria-label="Load one shell"><svg viewBox="0 0 24 40" aria-hidden="true"><path d="M7 15C7 8 10 3 12 2c2 1 5 6 5 13v17H7z" fill="currentColor"/><rect x="5.5" y="32" width="13" height="5" rx="1.2" fill="currentColor" opacity=".65"/></svg><small>R</small></button>
+<button class="load-btn" id="reloadR" type="button" aria-label="Load one shell"><svg viewBox="0 0 24 40" aria-hidden="true"><path d="M7 15C7 8 10 3 12 2c2 1 5 6 5 13v17H7z" fill="currentColor"/><rect x="5.5" y="32" width="13" height="5" rx="1.2" fill="currentColor" opacity=".65"/></svg><small>R</small></button>
 
 <div id="banner"><div class="t" id="bannerT"></div><div class="s" id="bannerS"></div></div>
 
@@ -317,7 +353,7 @@
     shield: { key: 'shieldT', time: 12, color: '#9dff8a', rgb: '157,255,138', label: 'City shield',    name: 'CITY SHIELD',      sub: 'A dome guards the city for 12 seconds', core: ['#ffffff', '#9dff8a', '#3c9a2c'] },
   };
   const isHostile = (e) => e.type !== 'bird' && e.type !== 'bonus';
-  const FONT = '"Rubik", "Segoe UI", system-ui, sans-serif';
+  const FONT = '"Chakra Petch", "Rubik", "Segoe UI", system-ui, sans-serif';
 
   let W = 0, H = 0, DPR = 1, u = 1, groundY = 0;
   let stars = [], skyline = [];
@@ -502,7 +538,7 @@
   }
   function shieldBlock(e) {
     S.score += 25;
-    addText(e.x, e.y - 12 * u, '+25 blocked', '#9dff8a', 13);
+    addText(e.x, e.y - 12 * u, '+25', '#9dff8a', 13);
     burst(e.x, e.y, 18, ['#9dff8a', '#ffffff', '#d8ffd0'], 150, 0.5, 40);
     tone(900, 400, 0.12, 0.07, 'sine');
   }
@@ -544,15 +580,15 @@
       if (e.kind === 'ammo') { S.ammo = CAP; S.reloading = false; S.reloadT = 0; S.stun = 0; }
       S.score += 250;
       if (chain) { chain.kills++; if (!chain.counted) { chain.counted = true; S.hits++; } }
-      addText(e.x, e.y - 14 * u, `+250  ${P.name}!`, P.color, 17);
+      addText(e.x, e.y - 14 * u, '+250', P.color, 18);
       burst(e.x, e.y, 30, [P.color, '#ffffff', '#ffe066'], 200, 0.9, 30, 2.6);
-      banner(P.name, P.sub);
+      S.flash = { kind: e.kind, t: 0 };
       sfx.power();
       return;
     }
     if (e.type === 'bird') {
       S.score = Math.max(0, S.score - 50);
-      addText(e.x, e.y - 10 * u, 'Bird! −50', '#ff8a7a', 15);
+      addText(e.x, e.y - 10 * u, '−50', '#ff8a7a', 16);
       burst(e.x, e.y, 14, ['#ffffff', '#dfe6ff', '#c9d2f0'], 70, 1.1, 40, 2.2);
       sfx.bird();
       return;
@@ -582,7 +618,6 @@
     if (e.tgt.cannon) {
       if (S.powerT > 0) { S.powerT = 0; sfx.powerEnd(); }
       S.ammo = 0; S.reloading = false; S.reloadT = 0; S.stun = 1.8;
-      addText(W / 2, groundY - 70 * u, 'Cannon hit! Magazine lost', '#ff8a7a', 16);
       return;
     }
     const b = e.tgt.b;
@@ -591,12 +626,10 @@
       const r = bRect(b);
       if (b.hp > 0) {
         burst(r.x + r.w / 2, r.y + 6 * u, 14, ['#2a3155', '#3a4270', '#ffb347'], 120, 1, 200, 2.6);
-        addText(r.x + r.w / 2, r.y - 16 * u, 'Building damaged', '#ffb08a', 15);
         return;
       }
       b.alive = false;
       burst(r.x + r.w / 2, r.y + r.h / 2, 30, ['#2a3155', '#3a4270', '#ffb347', '#6b6f88'], 160, 1.4, 260, 3.2);
-      addText(r.x + r.w / 2, r.y - 16 * u, 'Building destroyed', '#ff8a7a', 15);
       if (!aliveB().length) gameOver();
     }
   }
@@ -612,12 +645,13 @@
     document.body.classList.remove('menu');
     $('#startOv').hidden = true; $('#overOv').hidden = true; $('#pauseOv').hidden = true;
     ensureAudio();
-    banner('Hold out until dawn', '3 minutes. Watch the sky get lighter.');
+    banner('Hold until dawn', '');
     sfx.wave();
   }
   function dawn() {
     S.mode = 'won';
     S.reloading = false;
+    S.powerT = 0; S.slowT = 0; S.shieldT = 0;
     for (const e of S.enemies) {
       if (!isHostile(e)) continue;
       e.dead = true;
@@ -689,13 +723,13 @@
       }
       if (S.powerT > 0) {
         S.powerT -= dt;
-        if (S.powerT <= 0) { S.powerT = 0; sfx.powerEnd(); addText(W / 2, groundY - 60 * u, 'Unlimited ammo over', '#9aa4c8', 14); }
+        if (S.powerT <= 0) { S.powerT = 0; sfx.powerEnd(); }
       }
       for (const k of ['slow', 'shield']) {
         const P = POWERS[k];
         if (S[P.key] > 0) {
           S[P.key] -= dt;
-          if (S[P.key] <= 0) { S[P.key] = 0; sfx.powerEnd(); addText(W / 2, H * 0.3, `${P.label} over`, '#9aa4c8', 14); }
+          if (S[P.key] <= 0) { S[P.key] = 0; sfx.powerEnd(); }
         }
       }
       // spawning: one steady stream that slowly gets heavier
@@ -712,6 +746,7 @@
       if (S.elapsed >= NIGHT) dawn();
     }
     S.recoil = Math.max(0, S.recoil - dt * 6);
+    if (S.flash) S.flash.t += dt;
     S.emptyFlash = Math.max(0, S.emptyFlash - dt * 2);
     S.shake = Math.max(0, S.shake - dt * 2.2);
 
@@ -983,7 +1018,7 @@
     ctx.fillStyle = '#fff3c8'; ctx.beginPath(); ctx.arc(-len - 2 * u, 0, 2.6 * u, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
     // ×3 label
-    ctx.font = `800 ${Math.round(11 * u + 2)}px ${FONT}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.font = `700 ${Math.round(11 * u + 2)}px ${FONT}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
     ctx.fillStyle = c.head; ctx.fillText('×3', e.x + 20 * u, e.y - 14 * u);
   }
   function drawFast(e) {
@@ -1017,6 +1052,29 @@
     ctx.beginPath(); ctx.moveTo(-len + 2 * u, wid / 2); ctx.lineTo(-len - 4 * u, wid * 1.6); ctx.lineTo(-len + 7 * u, wid / 2); ctx.closePath(); ctx.fill();
     ctx.restore();
   }
+  function drawIcon(kind, x, y, k, color) {
+    ctx.save();
+    ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 1.8 * k; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    if (kind === 'ammo') {
+      ctx.beginPath();
+      for (let i = 0; i <= 64; i++) {
+        const t = (i / 64) * Math.PI * 2, d = 1 + Math.sin(t) ** 2;
+        const px = x + (7 * k * Math.cos(t)) / d, py = y + (7 * k * Math.sin(t) * Math.cos(t)) / d;
+        i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+      }
+      ctx.stroke();
+    } else if (kind === 'slow') {
+      ctx.beginPath(); ctx.arc(x, y, 6.5 * k, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - 4.5 * k); ctx.moveTo(x, y); ctx.lineTo(x + 3.5 * k, y + 1.5 * k); ctx.stroke();
+    } else {
+      const q = 7 * k;
+      ctx.beginPath();
+      ctx.moveTo(x, y - q); ctx.lineTo(x + q * 0.85, y - q * 0.6); ctx.lineTo(x + q * 0.7, y + q * 0.2);
+      ctx.quadraticCurveTo(x + q * 0.4, y + q * 0.8, x, y + q); ctx.quadraticCurveTo(x - q * 0.4, y + q * 0.8, x - q * 0.7, y + q * 0.2);
+      ctx.lineTo(x - q * 0.85, y - q * 0.6); ctx.closePath(); ctx.stroke();
+    }
+    ctx.restore();
+  }
   function drawBonus(e) {
     const P = POWERS[e.kind];
     const pulse = 1 + Math.sin(e.t * 8) * 0.12;
@@ -1029,21 +1087,7 @@
     ctx.fillStyle = og; ctx.beginPath(); ctx.arc(e.x, e.y, R, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = `rgba(${P.rgb},0.9)`; ctx.lineWidth = 2 * u;
     ctx.beginPath(); ctx.arc(e.x, e.y, R + 5 * u, e.t * 4, e.t * 4 + Math.PI * 1.4); ctx.stroke();
-    const ink = '#1c1a2e';
-    ctx.strokeStyle = ink; ctx.fillStyle = ink; ctx.lineWidth = 1.8 * u; ctx.lineCap = 'round';
-    if (e.kind === 'ammo') {
-      ctx.font = `800 ${Math.round(15 * u)}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText('∞', e.x, e.y + 1 * u);
-    } else if (e.kind === 'slow') {
-      ctx.beginPath(); ctx.arc(e.x, e.y, 6.5 * u, 0, Math.PI * 2); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(e.x, e.y); ctx.lineTo(e.x, e.y - 4.5 * u); ctx.moveTo(e.x, e.y); ctx.lineTo(e.x + 3.5 * u, e.y + 1.5 * u); ctx.stroke();
-    } else {
-      const k = 7 * u;
-      ctx.beginPath();
-      ctx.moveTo(e.x, e.y - k); ctx.lineTo(e.x + k * 0.85, e.y - k * 0.6); ctx.lineTo(e.x + k * 0.7, e.y + k * 0.2);
-      ctx.quadraticCurveTo(e.x + k * 0.4, e.y + k * 0.8, e.x, e.y + k); ctx.quadraticCurveTo(e.x - k * 0.4, e.y + k * 0.8, e.x - k * 0.7, e.y + k * 0.2);
-      ctx.lineTo(e.x - k * 0.85, e.y - k * 0.6); ctx.closePath(); ctx.stroke();
-    }
+    drawIcon(e.kind, e.x, e.y, u, '#1c1a2e');
   }
   function drawShield() {
     if (S.shieldT <= 0) return;
@@ -1063,20 +1107,40 @@
   }
   function drawPowers() {
     if (S.mode === 'menu') return;
-    const active = ['slow', 'shield'].filter((k) => S[POWERS[k].key] > 0);
-    const bw = 150 * u;
-    let y = 64 + 6 * u;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.direction = 'ltr';
-    ctx.font = `800 ${Math.round(11 * u + 2)}px ${FONT}`;
+    const active = ['ammo', 'slow', 'shield'].filter((k) => S[POWERS[k].key] > 0);
+    const R = 17 * u, gap = 12 * u, y = 82 + 6 * u;
+    let x = W / 2 - ((active.length - 1) * (R * 2 + gap)) / 2;
     for (const k of active) {
-      const P = POWERS[k], t = S[P.key];
-      ctx.fillStyle = P.color; ctx.fillText(`${P.label.toUpperCase()}  ${t.toFixed(1)}s`, W / 2, y);
-      ctx.fillStyle = `rgba(${P.rgb},0.18)`; roundRect(W / 2 - bw / 2, y + 3, bw, 6 * u, 3 * u); ctx.fill();
-      ctx.fillStyle = P.color; roundRect(W / 2 - bw / 2, y + 3, Math.max(6 * u, bw * (t / P.time)), 6 * u, 3 * u); ctx.fill();
-      y += 30 * u + 6;
+      const P = POWERS[k], t = S[P.key], f = t / P.time;
+      const blink = t < 2 && Math.sin(S.time * 18) < 0 ? 0.35 : 1;
+      ctx.save(); ctx.globalAlpha = blink;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, R * 2.2);
+      g.addColorStop(0, `rgba(${P.rgb},0.28)`); g.addColorStop(1, `rgba(${P.rgb},0)`);
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, R * 2.2, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(10,14,32,0.85)'; ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = `rgba(${P.rgb},0.2)`; ctx.lineWidth = 3 * u;
+      ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = P.color; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.arc(x, y, R, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * f); ctx.stroke();
+      drawIcon(k, x, y, u * 1.05, P.color);
+      ctx.restore();
+      x += R * 2 + gap;
+    }
+    // pickup flash: the orb's icon blooms in the centre of the sky
+    if (S.flash) {
+      const q = S.flash.t / 0.9, P = POWERS[S.flash.kind];
+      if (q >= 1) { S.flash = null; return; }
+      const cx = W / 2, cy = H * 0.34, a = 1 - q;
+      ctx.save();
+      ctx.fillStyle = `rgba(${P.rgb},${0.12 * a})`; ctx.fillRect(0, 0, W, H);
+      ctx.strokeStyle = `rgba(${P.rgb},${0.8 * a})`; ctx.lineWidth = 3 * u * a + 1;
+      ctx.beginPath(); ctx.arc(cx, cy, (30 + 220 * q) * u, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = a; ctx.shadowColor = P.color; ctx.shadowBlur = 24 * u;
+      drawIcon(S.flash.kind, cx, cy, u * (4 + 2 * q), P.color);
+      ctx.restore();
     }
   }
-    function drawDrone(e) {
+  function drawDrone(e) {
     const ang = e.diving ? Math.atan2(e.vy, e.vx) : (e.vx > 0 ? 0 : Math.PI);
     ctx.save(); ctx.translate(e.x, e.y + (e.diving ? 0 : Math.sin(e.t * 3) * 2 * u)); ctx.rotate(ang);
     ctx.fillStyle = '#9aa4c8';
@@ -1170,43 +1234,42 @@
   function drawAmmo() {
     if (S.mode === 'menu') return;
     const cx = W / 2, y = groundY + 18 * u, sw = 9 * u, sh = 20 * u, gap = 6 * u;
-    const total = CAP * sw + (CAP - 1) * gap;
-    let x0 = cx - total / 2;
-    if (S.powerT > 0) {
-      const f = S.powerT / POWER_TIME, bw = 150 * u, bh = 8 * u;
-      ctx.fillStyle = 'rgba(127,240,208,0.18)'; roundRect(cx - bw / 2, y + 4 * u, bw, bh, 4 * u); ctx.fill();
-      ctx.fillStyle = '#7ff0d0'; roundRect(cx - bw / 2, y + 4 * u, Math.max(bh, bw * f), bh, 4 * u); ctx.fill();
-      ctx.font = `800 ${Math.round(12 * u + 2)}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.direction = 'ltr';
-      ctx.fillStyle = '#7ff0d0'; ctx.fillText(`∞ UNLIMITED AMMO  ${S.powerT.toFixed(1)}s`, cx, y + sh + 6 * u);
-      return;
-    }
+    const total = CAP * sw + (CAP - 1) * gap, x0 = cx - total / 2;
+    const inf = S.powerT > 0, empty = S.ammo === 0 && S.mode === 'play' && !inf;
+    const warn = S.stun > 0 || empty;
+    const flick = warn ? 0.45 + 0.55 * (Math.sin(S.time * 12) > 0 ? 1 : 0) : 1;
+    // rack plate
+    ctx.fillStyle = 'rgba(8,11,26,0.7)'; roundRect(x0 - 10 * u, y - 7 * u, total + 20 * u, sh + 14 * u, 4 * u); ctx.fill();
+    ctx.strokeStyle = warn ? `rgba(255,90,60,${0.6 * flick})` : inf ? 'rgba(127,240,208,0.5)' : 'rgba(255,200,87,0.22)';
+    ctx.lineWidth = 1; roundRect(x0 - 10 * u, y - 7 * u, total + 20 * u, sh + 14 * u, 4 * u); ctx.stroke();
     for (let i = 0; i < CAP; i++) {
       const x = x0 + i * (sw + gap);
-      ctx.strokeStyle = 'rgba(255,200,87,0.45)'; ctx.lineWidth = 1.2 * u;
+      if (inf) {
+        const sh2 = 0.55 + 0.45 * Math.sin(S.time * 9 - i * 0.7);
+        ctx.save(); ctx.shadowColor = '#7ff0d0'; ctx.shadowBlur = 10 * u * sh2;
+        ctx.fillStyle = `rgba(127,240,208,${0.55 + 0.45 * sh2})`; roundRect(x, y, sw, sh, 3 * u); ctx.fill();
+        ctx.restore();
+        continue;
+      }
+      ctx.strokeStyle = warn ? `rgba(255,90,60,${0.8 * flick})` : 'rgba(255,200,87,0.4)'; ctx.lineWidth = 1.2 * u;
       roundRect(x, y, sw, sh, 3 * u); ctx.stroke();
       if (i < S.ammo) {
-        ctx.fillStyle = '#ffc857'; roundRect(x, y, sw, sh, 3 * u); ctx.fill();
-        ctx.fillStyle = '#b07a1e'; ctx.fillRect(x, y + sh - 5 * u, sw, 5 * u);
-      } else if (i === S.ammo && !S.reloading && S.autoT > 0) {
+        const g = ctx.createLinearGradient(x, 0, x + sw, 0);
+        g.addColorStop(0, '#ffe3a0'); g.addColorStop(0.5, '#ffc857'); g.addColorStop(1, '#d99a2b');
+        ctx.fillStyle = g; roundRect(x, y, sw, sh, 3 * u); ctx.fill();
+        ctx.fillStyle = '#9c6a1a'; ctx.fillRect(x, y + sh - 5 * u, sw, 5 * u);
+      } else if (i === S.ammo && S.autoT > 0) {
         const f = S.autoT / AUTO_TIME;
         ctx.save(); roundRect(x, y, sw, sh, 3 * u); ctx.clip();
         ctx.fillStyle = 'rgba(255,200,87,0.35)'; ctx.fillRect(x, y + sh * (1 - f), sw, sh * f);
         ctx.restore();
-      } else if (i === S.ammo && S.reloading) {
-        const f = S.reloadT / LOAD_TIME;
-        ctx.save(); roundRect(x, y, sw, sh, 3 * u); ctx.clip();
-        ctx.fillStyle = 'rgba(255,200,87,0.75)'; ctx.fillRect(x, y + sh * (1 - f), sw, sh * f);
-        ctx.restore();
       }
     }
-    ctx.font = `600 ${Math.round(12 * u + 2)}px ${FONT}`;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.direction = 'ltr';
-    const ty = y + sh + 6 * u;
-    if (S.stun > 0) { ctx.fillStyle = '#ff8a7a'; ctx.fillText('Cannon jammed…', cx, ty); }
-    else if (S.reloading) { ctx.fillStyle = '#ffd88a'; ctx.fillText('Loading…', cx, ty); }
-    else if (S.ammo === 0 && S.mode === 'play') {
-      ctx.fillStyle = Math.sin(S.time * 10) > -0.2 || S.emptyFlash > 0 ? '#ff5a3c' : 'rgba(255,90,60,0.4)';
-      ctx.fillText(finePointer ? 'EMPTY! Tap R to load' : 'EMPTY! Tap LOAD', cx, ty);
+    if (inf) {
+      // depleting ring around the cannon instead of a countdown
+      const p = pivot(), f = S.powerT / POWER_TIME;
+      ctx.strokeStyle = 'rgba(127,240,208,0.85)'; ctx.lineWidth = 3 * u; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.arc(p.x, p.y + 6 * u, 34 * u, Math.PI, Math.PI + Math.PI * f); ctx.stroke();
     }
   }
   function roundRect(x, y, w, h, r) {
@@ -1216,9 +1279,13 @@
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.direction = 'ltr';
     for (const t of S.texts) {
       ctx.globalAlpha = Math.min(1, 2 * (1 - t.t / t.life));
-      ctx.font = `800 ${Math.round(t.size * u + 2)}px ${FONT}`;
-      ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillText(t.txt, t.x + 1, t.y + 1);
+      const sc = t.t < 0.12 ? 0.7 + 2.5 * t.t : 1;
+      ctx.font = `700 ${Math.round((t.size * u + 2) * sc)}px ${FONT}`;
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(6,8,20,0.75)'; ctx.lineJoin = 'round';
+      ctx.strokeText(t.txt, t.x, t.y);
+      ctx.save(); ctx.shadowColor = t.color; ctx.shadowBlur = 12;
       ctx.fillStyle = t.color; ctx.fillText(t.txt, t.x, t.y);
+      ctx.restore();
     }
     ctx.globalAlpha = 1;
   }
@@ -1320,7 +1387,7 @@
         const q = (s - ti) / 0.8;
         ctx.save(); ctx.globalCompositeOperation = 'lighter';
         miniBoom(tgt.x, tgt.y, 30 * u * Math.min(1, q * 4), 1 - q * q); ctx.restore();
-        ctx.font = `800 ${Math.round(13 * u + 2)}px ${FONT}`; ctx.textAlign = 'center'; ctx.fillStyle = `rgba(255,216,138,${1 - q})`;
+        ctx.font = `700 ${Math.round(13 * u + 2)}px ${FONT}`; ctx.textAlign = 'center'; ctx.fillStyle = `rgba(255,216,138,${1 - q})`;
         ctx.fillText('+100', tgt.x, tgt.y - 30 * u - q * 14 * u);
       }
       // cannon
@@ -1359,9 +1426,12 @@
   const hudCache = {};
   function setText(id, v) { if (hudCache[id] !== v) { hudCache[id] = v; document.getElementById(id).textContent = v; } }
   const loadBtns = [...document.querySelectorAll('.load-btn')];
+  const trackFill = $('#trackFill'), trackDot = $('#trackDot');
   function hud() {
     setText('score', fmt(S.score));
-    setText('dawn', S.mode === 'won' ? 'Sunrise' : clock(NIGHT - S.elapsed));
+    setText('dawn', S.mode === 'won' ? 'SUNRISE' : clock(NIGHT - S.elapsed));
+    const pct = (prog() * 100).toFixed(2) + '%';
+    if (hudCache.pct !== pct) { hudCache.pct = pct; trackFill.style.width = pct; trackDot.style.left = pct; }
     setText('best', fmt(Math.max(best, S.score)));
     for (const rb of loadBtns) {
       rb.classList.toggle('urgent', S.mode === 'play' && S.ammo === 0 && S.stun <= 0);
@@ -1427,7 +1497,7 @@
   $('#againBtn').addEventListener('click', startGame);
   $('#resumeBtn').addEventListener('click', () => setPaused(false));
   $('#pauseBtn').addEventListener('click', (ev) => { ev.currentTarget.blur(); setPaused(S.mode === 'play'); });
-  $('#muteBtn').addEventListener('click', (ev) => { muted = !muted; ev.currentTarget.textContent = muted ? 'Sound: off' : 'Sound: on'; ev.currentTarget.blur(); });
+  $('#muteBtn').addEventListener('click', (ev) => { muted = !muted; const b = ev.currentTarget; b.classList.toggle('muted', muted); b.setAttribute('aria-label', muted ? 'Turn sound on' : 'Mute sound'); b.blur(); });
   window.addEventListener('keydown', (ev) => {
     const k = ev.key.toLowerCase();
     if (k === 'r' || k === 'ר' || k === ' ' || k === 'arrowdown') {
